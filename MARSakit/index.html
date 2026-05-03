@@ -6,8 +6,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MARSakit</title>
   </head>
+    <script src="/libs/tesseract.min.js"></script>
+    <script src="/libs/fuse.js"></script>
+
+
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
+    <p>Upload an image to extract text:</p>
+    <input type="file" id="imageInput" class="btn" name="files{}" accept="image/*">
+    <div id="output"></div> 
+    <div id="status_OCR" style="font-size: 0.8rem; color: #666; margin-bottom: 10px;"></div>
+    <div id="output" style="border: 1px solid #ccc; padding: 10px; min-height: 50px; white-space: pre-wrap;"></div> 
+    </div>
+    <h4 id="status_OCR">Text Extracted</h4>
+    <script>
+      //offline OCR processing using Tesseract.js
+      const worker = Tesseract.createWorker({ //create a Tesseract worker to handle OCR processing
+        logger: m => {
+          const mainstatus = document.getElementById('status_OCR');
+          if (mainstatus) {
+            mainstatus.textContent = `OCR Status: ${m.status} (${Math.round(m.progress * 100)}%)`;
+          } //This will update the OCR status in the UI if an element with id 'status_OCR' exists, otherwise it will log to the console.
+          else {
+            console.log(`OCR Status: ${m.status} (${Math.round(m.progress * 100)}%)`);
+          } // Log OCR progress to console or update UI
+        }
+      });
+      document.getElementById('imageInput').addEventListener('click', async (event) => {
+        const fileInput = document.getElementById('imageInput');
+        const output = document.getElementById('output');
+        if (fileInput.files.length === 0) return;
+        const file = fileInput.files[0];
+
+    // UI Feedback
+     output.textContent = "Processing image...";
+
+    try {
+      // Step A: Prepare the worker (Offline)
+      await worker.loadLanguage('eng');
+      await worker.initialize('eng');
+
+      // Step B: Automatically recognize text from the uploaded file
+      const { data: { text } } = await worker.recognize(file);
+      
+      // Step C: Display raw output
+      outputDiv.innerText = text;
+
+      // Step D: Automated Fuzzy Search (Fuse.js)
+      // This immediately looks for common medicine keywords in the scanned text
+      const medicineKeywords = ['Paracetamol', 'Amoxicillin', 'Mefenamic', 'Dosage', 'Expiry'];
+      const lines = text.split('\n').filter(line => line.trim() !== "");
+      
+      const fuse = new Fuse(lines, {
+        threshold: 0.4, // Adjust for how strict the matching should be
+        includeScore: true
+      });
+
+      console.log("--- Automated Match Report ---");
+      medicineKeywords.forEach(med => {
+        const result = fuse.search(med);
+        if (result.length > 0) {
+          console.log(`Found similarity for ${med}: "${result[0].item}"`);
+        }
+      });
+
+    } catch (error) {
+      console.error("OCR Automation Error:", error);
+      outputDiv.textContent = "Error: System failed to read the label.";
+    }
+    // Note: We don't terminate the worker here so it stays "warm" for the next scan
+  });
+
+    </script>
   </body>
 </html>
