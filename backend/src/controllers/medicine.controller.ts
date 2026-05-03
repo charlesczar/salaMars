@@ -1,23 +1,67 @@
 import type { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { normalizeInput } from '../utils/normalize.query.js';
+import { fileURLToPath } from 'url';
+import {
+    buildTypoCheckPrompt,
+    buildExplainPrompt,
+} from '../utils/gemini.prompts.js';
+import { askGemini } from '../services/gemini.service.js';
 
-export const getMedicines = (req: Request, res: Response) => {
-    const searchQuery = req.query.search as string | undefined;
+const currentFilePath = fileURLToPath(import.meta.url);
+const filePath = path.join(path.dirname(currentFilePath), '../data/medicines.json');
+const medicines = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
-    const normalizedQuery = searchQuery ? normalizeInput(searchQuery) : undefined;
+export const searchMedicine = async (req: Request, res: Response) => {
+    const query = req.query.search as string | undefined;
 
-    const filePath = path.join(__dirname, '../data/medicines.json');
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    const medicines = JSON.parse(raw);
-
-    if (normalizedQuery) {
-        const filtered = medicines.find((med: any) =>
-            med.searchKeys.some((key: string) => key.includes(normalizedQuery))
-        );
-        return res.json(filtered);
+    if (!query || query.trim() === "") {
+        return res.status(400).json({ error: "Search query is required." });
     }
 
-    return res.json(medicines);
+    const medicineNames = medicines.map((m: any) => m.name);
+
+    /** @returns 
+        { 
+            matched: boolean, 
+            correctedName: string | null 
+        }
+    */
+    const typoResult = await askGemini(buildTypoCheckPrompt(query, medicineNames));
+
+    if (!typoResult.matched || !typoResult.correctedName) {
+        return res.status(404).json({
+            error: `No medicine found for "${query}". Please check your spelling.`,
+        });
+    }
+
+    const medicine = medicines.find(
+        (m: any) => m.name.toLowerCase() === typoResult.correctedName.toLowerCase()
+    );
+
+    if (!medicine) {
+        return res.status(404).json({ error: "Medicine not found in database." });
+    }
+
+    /** @returns 
+     *  {    
+            "summary": "...",
+            "uses": "...",
+            "warnings": "...",
+            "sideEffects": "...",
+            "whenToUse": "...",
+            "whenToAvoid": "..."
+        } 
+    */
+    const explanation = await askGemini(buildExplainPrompt(medicine));
+
+    const wasTypo = query.toLowerCase().trim() !== typoResult.correctedName.toLowerCase().trim();
+    const searchCorrection = wasTypo
+        ? `Did you mean "${typoResult.correctedName}"?`
+        : undefined;
+
+    return res.status(200).json({
+        geminiResponse: explanation,
+        ...(searchCorrection && { searchCorrection }),
+    });
 };
