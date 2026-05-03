@@ -1,83 +1,165 @@
 <!DOCTYPE html>
-<html lang="">
-  <head>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MARSakit</title>
-  </head>
+    <title>MARSakit - OCR</title>
     <script src="/libs/tesseract.min.js"></script>
     <script src="/libs/fuse.js"></script>
-
-
-  <body>
+</head>
+<body>
     <div id="app"></div>
+    
+    <h2>Medicine Label Scanner</h2>
+    <p>Upload an image of a medicine label to extract text:</p>
+    <input type="file" id="imageInput" accept="image/*">
+    
+    <div id="status_OCR" style="color: #666; margin: 10px 0;"></div>
+    <div id="output" style="border: 1px solid #ccc; padding: 10px; min-height: 100px; white-space: pre-wrap;"></div>
+    <button id="correctBtn" style="display:none;">Correct Text</button>
+
     <script type="module" src="/src/main.ts"></script>
-    <p>Upload an image to extract text:</p>
-    <input type="file" id="imageInput" class="btn" name="files{}" accept="image/*">
-    <div id="output"></div> 
-    <div id="status_OCR" style="font-size: 0.8rem; color: #666; margin-bottom: 10px;"></div>
-    <div id="output" style="border: 1px solid #ccc; padding: 10px; min-height: 50px; white-space: pre-wrap;"></div> 
-    </div>
-    <h4 id="status_OCR">Text Extracted</h4>
     <script>
-      //offline OCR processing using Tesseract.js
-      const worker = Tesseract.createWorker({ //create a Tesseract worker to handle OCR processing
-        logger: m => {
-          const mainstatus = document.getElementById('status_OCR');
-          if (mainstatus) {
-            mainstatus.textContent = `OCR Status: ${m.status} (${Math.round(m.progress * 100)}%)`;
-          } //This will update the OCR status in the UI if an element with id 'status_OCR' exists, otherwise it will log to the console.
-          else {
-            console.log(`OCR Status: ${m.status} (${Math.round(m.progress * 100)}%)`);
-          } // Log OCR progress to console or update UI
+        let worker = null;
+        let isWorkerReady = false;
+
+        // Initialize worker ONCE at startup
+        async function initializeWorker() {
+            const statusDiv = document.getElementById('status_OCR');
+            statusDiv.textContent = "Initializing OCR engine...";
+            
+            try {
+                worker = await Tesseract.createWorker({
+                    logger: m => {
+                        if (statusDiv) {
+                            statusDiv.textContent = `OCR Status: ${m.status} (${Math.round(m.progress * 100)}%)`;
+                        }
+                    }
+                });
+                
+                await worker.loadLanguage('eng');
+                await worker.initialize('eng');
+                
+                isWorkerReady = true;
+                statusDiv.textContent = "Ready! Upload an image.";
+            } catch (error) {
+                console.error("Worker initialization failed:", error);
+                statusDiv.textContent = "Error: Failed to initialize OCR engine.";
+            }
         }
-      });
-      document.getElementById('imageInput').addEventListener('click', async (event) => {
-        const fileInput = document.getElementById('imageInput');
-        const output = document.getElementById('output');
-        if (fileInput.files.length === 0) return;
-        const file = fileInput.files[0];
 
-    // UI Feedback
-     output.textContent = "Processing image...";
+        // Optimize image before OCR
+        function optimizeImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Resize to optimal width for OCR
+                        const maxWidth = 800;
+                        const scale = Math.min(1, maxWidth / img.width);
+                        const width = img.width * scale;
+                        const height = img.height * scale;
 
-    try {
-      // Step A: Prepare the worker (Offline)
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
-
-      // Step B: Automatically recognize text from the uploaded file
-      const { data: { text } } = await worker.recognize(file);
-      
-      // Step C: Display raw output
-      outputDiv.innerText = text;
-
-      // Step D: Automated Fuzzy Search (Fuse.js)
-      // This immediately looks for common medicine keywords in the scanned text
-      const medicineKeywords = ['Paracetamol', 'Amoxicillin', 'Mefenamic', 'Dosage', 'Expiry'];
-      const lines = text.split('\n').filter(line => line.trim() !== "");
-      
-      const fuse = new Fuse(lines, {
-        threshold: 0.4, // Adjust for how strict the matching should be
-        includeScore: true
-      });
-
-      console.log("--- Automated Match Report ---");
-      medicineKeywords.forEach(med => {
-        const result = fuse.search(med);
-        if (result.length > 0) {
-          console.log(`Found similarity for ${med}: "${result[0].item}"`);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
-      });
 
-    } catch (error) {
-      console.error("OCR Automation Error:", error);
-      outputDiv.textContent = "Error: System failed to read the label.";
-    }
-    // Note: We don't terminate the worker here so it stays "warm" for the next scan
-  });
+        // Handle file selection - CHANGE event, not CLICK
+        document.getElementById('imageInput').addEventListener('change', async (event) => {
+            const fileInput = event.target;
+            const outputDiv = document.getElementById('output');
+            const correctBtn = document.getElementById('correctBtn');
+            
+            if (fileInput.files.length === 0) return;
+            
+            if (!isWorkerReady) {
+                outputDiv.textContent = "Please wait, OCR engine is still initializing...";
+                return;
+            }
 
+            const file = fileInput.files[0];
+            outputDiv.textContent = "Processing image...";
+            correctBtn.style.display = 'none';
+
+            try {
+                // Optimize image first
+                const optimizedBlob = await optimizeImage(file);
+                
+                // Perform OCR
+                const { data: { text, confidence } } = await worker.recognize(optimizedBlob);
+                
+                // Display results
+                outputDiv.textContent = text || "No text detected in image.";
+                document.getElementById('status_OCR').textContent = 
+                    `Extraction complete! Confidence: ${Math.round(confidence)}%`;
+                
+                correctBtn.style.display = 'inline-block';
+
+                // Automated medicine keyword search
+                if (text) {
+                    searchMedicineKeywords(text);
+                }
+
+            } catch (error) {
+                console.error("OCR Error:", error);
+                outputDiv.textContent = "Error: Failed to read the label.";
+            }
+        });
+
+        // Fuzzy search for medicine keywords
+        function searchMedicineKeywords(text) {
+            const medicineKeywords = ['Paracetamol', 'Amoxicillin', 'Mefenamic', 'Dosage', 'Expiry', 'mg', 'tablet'];
+            const lines = text.split('\n').filter(line => line.trim() !== "");
+            
+            const fuse = new Fuse(lines, {
+                threshold: 0.4, // Stricter matching (was 0.8)
+                includeScore: true
+            });
+
+            console.log("--- Medicine Keyword Matches ---");
+            medicineKeywords.forEach(keyword => {
+                const results = fuse.search(keyword);
+                if (results.length > 0) {
+                    console.log(`✓ Found "${keyword}": "${results[0].item}" (score: ${results[0].score.toFixed(2)})`);
+                }
+            });
+        }
+
+        // Manual correction handler
+        document.getElementById('correctBtn').addEventListener('click', () => {
+            const outputDiv = document.getElementById('output');
+            const currentText = outputDiv.textContent;
+            const userCorrection = prompt("Correct the extracted text if needed:", currentText);
+            
+            if (userCorrection !== null && userCorrection.trim() !== "") {
+                outputDiv.textContent = userCorrection;
+                searchMedicineKeywords(userCorrection); // Re-search with corrected text
+            }
+        });
+
+        // Initialize on page load
+        initializeWorker();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', async () => {
+            if (worker) {
+                await worker.terminate();
+            }
+        });
     </script>
-  </body>
+</body>
 </html>
