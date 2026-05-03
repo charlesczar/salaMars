@@ -1,0 +1,391 @@
+[
+    {
+        "id": "paracetamol",
+        "name": "Paracetamol",
+        "genericName": "Acetaminophen",
+        "brandNames": [
+            "Biogesic",
+            "Tylenol",
+            "Calpol"
+        ],
+        "category": "Analgesic / Antipyretic",
+        "activeIngredients": [
+            "paracetamol"
+        ],
+        "searchKeys": [
+            "paracetamol",
+            "acetaminophen",
+            "biogesic",
+            "tylenol",
+            "calpol",
+            "biogesic 500",
+            "para",
+            "paracetamol tablet"
+        ],
+        "uses": [
+            "Fever reduction",
+            "Headache relief",
+            "Mild pain relief"
+        ],
+        "sideEffects": [
+            "Nausea",
+            "Rash",
+            "Liver damage (overdose)"
+        ],
+        "warnings": [
+            "Do not exceed recommended dose",
+            "Avoid alcohol",
+            "Overdose may cause liver failure"
+        ],
+        "allergyTriggers": [
+            "paracetamol",
+            "acetaminophen"
+        ],
+        "contraindications": [
+            "Severe liver disease"
+        ],
+        "otc": true
+    },
+    {
+        "id": "ibuprofen",
+        "name": "Ibuprofen",
+        "genericName": "Ibuprofen",
+        "brandNames": [
+            "Advil",
+            "Medicol",
+            "Nurofen"
+        ],
+        "category": "NSAID",
+        "activeIngredients": [
+            "ibuprofen"
+        ],
+        "searchKeys": [
+            "ibuprofen",
+            "advil",
+            "medicol",
+            "nurofen",
+            "pain reliever",
+            "fever medicine",
+            "nsaid"
+        ],
+        "uses": [
+            "Pain relief",
+            "Inflammation reduction",
+            "Fever reduction"
+        ],
+        "sideEffects": [
+            "Stomach pain",
+            "Dizziness",
+            "Acid reflux"
+        ],
+        "warnings": [
+            "Avoid on empty stomach",
+            "Avoid if you have ulcers"
+        ],
+        "allergyTriggers": [
+            "ibuprofen",
+            "nsaid"
+        ],
+        "contraindications": [
+            "Peptic ulcer",
+            "Severe kidney disease"
+        ],
+        "otc": true
+    },
+    {
+        "id": "cetirizine",
+        "name": "Cetirizine",
+        "genericName": "Cetirizine",
+        "brandNames": [
+            "Zyrtec",
+            "Allerta"
+        ],
+        "category": "Antihistamine",
+        "activeIngredients": [
+            "cetirizine"
+        ],
+        "searchKeys": [
+            "cetirizine",
+            "zyrtec",
+            "allerta",
+            "allergy medicine",
+            "antihistamine",
+            "runny nose medicine"
+        ],
+        "uses": [
+            "Allergy relief",
+            "Sneezing",
+            "Itchy eyes",
+            "Runny nose"
+        ],
+        "sideEffects": [
+            "Drowsiness",
+            "Dry mouth"
+        ],
+        "warnings": [
+            "May cause drowsiness",
+            "Avoid driving if sleepy"
+        ],
+        "allergyTriggers": [
+            "cetirizine"
+        ],
+        "otc": true
+    },
+    {
+        "id": "amoxicillin",
+        "name": "Amoxicillin",
+        "genericName": "Amoxicillin",
+        "brandNames": [
+            "Amoxil",
+            "Trimox"
+        ],
+        "category": "Antibiotic",
+        "activeIngredients": [
+            "amoxicillin"
+        ],
+        "searchKeys": [
+            "amoxicillin",
+            "amoxil",
+            "trimox",
+            "antibiotic",
+            "infection medicine",
+            "penicillin antibiotic"
+        ],
+        "uses": [
+            "Bacterial infections",
+            "Respiratory infections",
+            "Skin infections"
+        ],
+        "sideEffects": [
+            "Diarrhea",
+            "Rash",
+            "Nausea"
+        ],
+        "warnings": [
+            "Complete full course",
+            "Do not use for viral infections"
+        ],
+        "allergyTriggers": [
+            "penicillin",
+            "amoxicillin"
+        ],
+        "otc": false
+    },
+    {
+        "id": "loperamide",
+        "name": "Loperamide",
+        "genericName": "Loperamide",
+        "brandNames": [
+            "Imodium"
+        ],
+        "category": "Antidiarrheal",
+        "activeIngredients": [
+            "loperamide"
+        ],
+        "searchKeys": [
+            "loperamide",
+            "imodium",
+            "diarrhea medicine",
+            "pampatigil ng pagtatae"
+        ],
+        "uses": [
+            "Diarrhea control"
+        ],
+        "sideEffects": [
+            "Constipation",
+            "Dizziness"
+        ],
+        "warnings": [
+            "Do not use for bacterial diarrhea without doctor advice"
+        ],
+        "allergyTriggers": [
+            "loperamide"
+        ],
+        "otc": true
+    },
+    {
+        "id": "omeprazole",
+        "name": "Omeprazole",
+        "genericName": "Omeprazole",
+        "brandNames": [
+            "Prilosec",
+            "Losec"
+        ],
+        "category": "Proton Pump Inhibitor",
+        "activeIngredients": [
+            "omeprazole"
+        ],
+        "searchKeys": [
+            "omeprazole",
+            "prilosec",
+            "losec",
+            "acid reflux",
+            "heartburn medicine",
+            "ulcer medicine"
+        ],
+        "uses": [
+            "Acid reflux",
+            "Heartburn",
+            "Ulcer treatment"
+        ],
+        "sideEffects": [
+            "Headache",
+            "Nausea",
+            "Gas"
+        ],
+        "warnings": [
+            "Long-term use requires doctor supervision"
+        ],
+        "allergyTriggers": [
+            "omeprazole"
+        ],
+        "otc": true
+    },
+    {
+        "id": "salbutamol",
+        "name": "Salbutamol",
+        "genericName": "Albuterol",
+        "brandNames": [
+            "Ventolin"
+        ],
+        "category": "Bronchodilator",
+        "activeIngredients": [
+            "salbutamol"
+        ],
+        "searchKeys": [
+            "salbutamol",
+            "albuterol",
+            "ventolin",
+            "asthma inhaler",
+            "inhaler",
+            "breathing medicine"
+        ],
+        "uses": [
+            "Asthma relief",
+            "Breathing difficulty"
+        ],
+        "sideEffects": [
+            "Tremors",
+            "Fast heartbeat"
+        ],
+        "warnings": [
+            "Use only as prescribed"
+        ],
+        "allergyTriggers": [
+            "salbutamol",
+            "albuterol"
+        ],
+        "otc": false
+    },
+    {
+        "id": "mefenamic_acid",
+        "name": "Mefenamic Acid",
+        "genericName": "Mefenamic Acid",
+        "brandNames": [
+            "Ponstan"
+        ],
+        "category": "NSAID",
+        "activeIngredients": [
+            "mefenamic acid"
+        ],
+        "searchKeys": [
+            "mefenamic acid",
+            "ponstan",
+            "pain killer",
+            "menstrual pain medicine",
+            "gamot sa sakit ng puson"
+        ],
+        "uses": [
+            "Menstrual pain",
+            "Mild to moderate pain"
+        ],
+        "sideEffects": [
+            "Stomach pain",
+            "Dizziness"
+        ],
+        "warnings": [
+            "Take after meals",
+            "Avoid long-term use"
+        ],
+        "allergyTriggers": [
+            "mefenamic acid",
+            "nsaid"
+        ],
+        "otc": true
+    },
+    {
+        "id": "antacid",
+        "name": "Antacid",
+        "genericName": "Aluminum Hydroxide / Magnesium Hydroxide",
+        "brandNames": [
+            "Kremil-S",
+            "Gaviscon"
+        ],
+        "category": "Antacid",
+        "activeIngredients": [
+            "aluminum hydroxide",
+            "magnesium hydroxide"
+        ],
+        "searchKeys": [
+            "antacid",
+            "kremil-s",
+            "gaviscon",
+            "hyperacidity",
+            "acid stomach",
+            "heartburn relief"
+        ],
+        "uses": [
+            "Acid neutralization",
+            "Heartburn relief",
+            "Hyperacidity"
+        ],
+        "sideEffects": [
+            "Constipation",
+            "Diarrhea"
+        ],
+        "warnings": [
+            "Do not overuse",
+            "May affect absorption of other medicines"
+        ],
+        "allergyTriggers": [
+            "aluminum hydroxide",
+            "magnesium hydroxide"
+        ],
+        "otc": true
+    },
+    {
+        "id": "loratadine",
+        "name": "Loratadine",
+        "genericName": "Loratadine",
+        "brandNames": [
+            "Claritin"
+        ],
+        "category": "Antihistamine",
+        "activeIngredients": [
+            "loratadine"
+        ],
+        "searchKeys": [
+            "loratadine",
+            "claritin",
+            "allergy medicine",
+            "antihistamine",
+            "sneezing medicine"
+        ],
+        "uses": [
+            "Allergy relief",
+            "Hay fever",
+            "Sneezing"
+        ],
+        "sideEffects": [
+            "Headache",
+            "Dry mouth"
+        ],
+        "warnings": [
+            "Less drowsy than other antihistamines"
+        ],
+        "allergyTriggers": [
+            "loratadine"
+        ],
+        "otc": true
+    }
+]
