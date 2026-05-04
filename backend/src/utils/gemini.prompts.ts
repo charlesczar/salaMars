@@ -1,3 +1,5 @@
+import type { Language } from "../constants/languages.js";
+
 // @desc System instruction for Gemini to act as a medicine information assistant
 export const SYSTEM_INSTRUCTION = `
 You are a medicine information assistant for a Philippine pharmacy app.
@@ -29,14 +31,28 @@ function formatValue(value: string | string[] | boolean | undefined): string {
     return normalized ? normalized : "Not available in the database.";
 }
 
+function describeLanguagePreference(language: Language): string {
+    switch (language) {
+        case 'english':
+            return 'English';
+        case 'filipino':
+            return 'Filipino';
+        case 'taglish':
+            return 'Taglish (mixed Filipino and English)';
+        case 'bisaya':
+            return 'Bisaya';
+    }
+}
+
 // TO DO: Add a param for custom language preference of the user (Taglish, Filipino, English)
-export function buildExplainPrompt(med: any, searchContext?: { query: string; matchedOn?: 'brand' | 'generic' | 'exact' | 'other' }): string {
+export function buildExplainPrompt(med: any, language: Language, searchContext?: { query: string; matchedOn?: 'brand' | 'generic' | 'exact' | 'other' }): string {
     const queryLine = searchContext?.query ? `User searched for: ${searchContext.query}` : '';
     const matchLine = searchContext?.matchedOn === 'brand'
         ? 'The user searched using a brand name. Mention that clearly and also state the generic/active medicine name.'
         : searchContext?.matchedOn === 'generic'
             ? 'The user searched using a generic name. Mention that clearly and also state any common brand name if available.'
             : 'If the search term differs from the medicine record name, clarify the relationship in plain language.';
+    const languageLine = describeLanguagePreference(language);
 
     return `
         MEDICINE DATA:
@@ -48,7 +64,8 @@ export function buildExplainPrompt(med: any, searchContext?: { query: string; ma
         Contraindications: ${formatValue(med.contraindications)}
         OTC: ${formatValue(med.otc)}
 
-        LANGUAGE: Taglish (Filipino-English mix) — simple, clear, easy to understand.
+        Note: Strictly follow the language preference set by the user.
+        LANGUAGE PREFERENCE: Respond in ${languageLine}.
         AUDIENCE: Ordinary Filipinos with no medical background.
         ${queryLine}
         MATCH CONTEXT: ${matchLine}
