@@ -58,20 +58,58 @@ async function getWorker() {
 }
 
 function normalize(s: string) {
-  return s.trim().toLowerCase()
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '') // Remove special chars
+    // Normalize common OCR errors
+    .replace(/0/g, 'o')
+    .replace(/1/g, 'i')
 }
 
 async function searchText(txt: string) {
-  const t = normalize(txt)
-  if (!t) {
-    emit('scan-complete', { error: 'No recognizable text found in image.' })
-    return
-  }
-  const lang = languageStore.language === 'tl' ? 'filipino' : 'english'
-  const response = await scanMedicines(t, lang)
-  emit('scan-complete', response)
+  const words = txt
+    .split(/\s+/)
+    .map(w => normalize(w))
+
+  const allResults = await Promise.all(
+    words.map(word => searchMedicines(word))
+  )
+  
+  const uniqueMeds = new Map()
+  allResults.flat().forEach(med => uniqueMeds.set(med.id, med))
+  return Array.from(uniqueMeds.values())
+}
+async function preprocessImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    img.onload = () => {
+      canvas.width = img.width
+      canvas.height = img.height
+      // Draw original
+      ctx.drawImage(img, 0, 0)
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+      // Convert to grayscale and increase contrast
+      for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3
+        // Increase contrast
+        const contrasted = ((avg - 128) * 1.5) + 128
+        const clamped = Math.max(0, Math.min(255, contrasted))
+        data[i] = data[i + 1] = data[i + 2] = clamped
+      }
+      ctx.putImageData(imageData, 0, 0)
+      canvas.toBlob((blob) => resolve(blob!), 'image/png')
+    }
+    img.src = URL.createObjectURL(file)
+  })
 }
 
+
+// Main processing function
 async function processFile(file: File) {
   status.value = 'Preparing OCR engine...'
   ocrText.value = ''
