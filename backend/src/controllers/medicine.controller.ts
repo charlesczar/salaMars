@@ -5,10 +5,34 @@ import { fileURLToPath } from 'url';
 import { buildExplainPrompt } from '../utils/gemini.prompts.js';
 import { askGemini } from '../services/gemini.service.js';
 import { normalizeInput } from '../utils/normalize.query.js';
+import { languages, type Language } from '../constants/languages.js';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const filePath = path.join(path.dirname(currentFilePath), '../data/medicines.json');
 const medicines = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+const validLangs: Language[] = [...languages];
+
+function resolveLanguagePreference(language: string | undefined): Language | undefined {
+    if (!language) {
+        return undefined;
+    }
+
+    const normalized = normalizeInput(language);
+
+    if (validLangs.includes(normalized as Language)) {
+        return normalized as Language;
+    }
+
+    if (normalized === 'en') {
+        return 'english';
+    }
+
+    if (normalized === 'tl') {
+        return 'filipino';
+    }
+
+    return undefined;
+}
 
 function levenshteinDistance(left: string, right: string): number {
     const rows = left.length + 1;
@@ -159,45 +183,72 @@ function findBestMedicineMatch(query: string) {
 }
 
 export const searchMedicine = async (req: Request, res: Response) => {
-    let query = req.query.search as string | undefined;
+    const { medicine, language } = req.query as { medicine?: string; language?: string };
+    const resolvedLanguage = resolveLanguagePreference(language);
 
-    if (!query || query.trim() === "") {
-        return res.status(400).json({ error: "Search query is required." });
+    if (!medicine || medicine.trim() === '' || !language) {
+        return res.status(400).json({ error: 'Medicine and language are required.' });
     }
 
-    query = normalizeInput(query);
+    if (!resolvedLanguage) {
+        return res.status(400).json({ error: 'Invalid language specified.' });
+    }
 
-    const { medicine, searchCorrection, matchedOn } = findBestMedicineMatch(query);
+    const { medicine: matchedMedicine, searchCorrection, matchedOn } = findBestMedicineMatch(medicine);
 
-    if (!medicine) {
-        return res.status(404).json({
-            error: `No medicine found for "${query}". Please check your spelling.`,
+    if (!matchedMedicine) {
+        return res.status(200).json({
+            success: true,
+            message: `No medicine found for "${medicine}". Please check your spelling.`,
         });
     }
 
-    /** @returns 
-     *  {    
-            "summary": "...",
-            "uses": "...",
-            "warnings": "...",
-            "sideEffects": "...",
-            "whenToUse": "...",
-            "whenToAvoid": "..."
-        } 
-    */
     const explanation = await askGemini(
         buildExplainPrompt(
-            medicine,
-            matchedOn ? { query, matchedOn } : { query }
+            matchedMedicine,
+            resolvedLanguage,
+            matchedOn ? { query: medicine, matchedOn } : { query: medicine }
         )
     );
 
     const geminiResponse = hasUsefulGeminiResponse(explanation)
         ? explanation
-        : buildMedicineResponse(medicine, matchedOn);
+        : buildMedicineResponse(matchedMedicine, matchedOn);
 
     return res.status(200).json({
         geminiResponse,
         ...(searchCorrection && { searchCorrection }),
     });
+};
+
+export const scanMedicine = async (req: Request, res: Response) => {
+    const medicine = req.body?.medicine as string | undefined;
+    const language = req.body?.language as Language | undefined;
+    const resolvedLanguage = resolveLanguagePreference(language);
+
+    if (!resolvedLanguage) {
+        return res.status(400).json({ error: 'Language preference is required.' });
+    }
+
+    if (!medicine || medicine.trim() === '') {
+        return res.status(400).json({ error: 'Medicine name is required.' });
+    }
+
+    const { medicine: matchedMedicine } = findBestMedicineMatch(medicine);
+
+    if (!matchedMedicine) {
+        return res.status(404).json({
+            error: `No medicine found for "${medicine}". Please check your spelling.`,
+        });
+    }
+
+    const explanation = await askGemini(
+        buildExplainPrompt(matchedMedicine, resolvedLanguage, { query: medicine, matchedOn: getMatchContext(matchedMedicine, medicine) })
+    );
+
+    const geminiResponse = hasUsefulGeminiResponse(explanation)
+        ? explanation
+        : buildMedicineResponse(matchedMedicine);
+
+    return res.status(200).json({ geminiResponse });
 };
