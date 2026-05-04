@@ -3,12 +3,6 @@
     <div class="status" v-if="status">{{ status }}</div>
     <div class="ocr-text" v-if="ocrText">{{ ocrText }}</div>
 
-    <div v-if="results.length > 0" class="scan-results">
-      <h4>{{ labels.foundLabel }}</h4>
-      <ul>
-        <li v-for="m in results" :key="m.id">{{ m.name }} — {{ m.brandNames.join(', ') }}</li>
-      </ul>
-    </div>
   </div>
 </template>
 
@@ -17,11 +11,13 @@ import { ref, computed, watch } from 'vue'
 import { loadExternalScript } from '@/utils/loadExternalScript'
 import { type Medicine } from '@/data/medicines'
 import { useLanguageStore } from '@/stores/language'
-import { searchMedicines } from '@/utils/api'
+import { scanMedicines } from '@/utils/api'
 
 const props = defineProps<{
   initialFile?: File | null
 }>()
+
+const emit = defineEmits(['scan-complete'])
 
 const languageStore = useLanguageStore()
 
@@ -33,12 +29,10 @@ const labels = computed(() =>
 
 const status = ref('')
 const ocrText = ref('')
-const results = ref<Medicine[]>([])
 
 async function initTesseract() {
   try {
     await loadExternalScript('/libs/tesseract.min.js')
-    await loadExternalScript('/libs/worker.min.js')
     return true
   } catch (e) {
     console.error('Failed to load OCR libs', e)
@@ -54,9 +48,12 @@ async function getWorker() {
     const ok = await initTesseract()
     if (!ok) throw new Error('OCR libs not available')
   }
-  worker = await (window as any).Tesseract.createWorker({ logger: (m: any) => (status.value = `${m.status} ${(m.progress || 0) * 100 | 0}%`) })
-  await worker.loadLanguage('eng')
-  await worker.initialize('eng')
+  // In Tesseract v5, createWorker takes (langs, oem, options)
+  // and automatically runs loadLanguage and initialize.
+  worker = await (window as any).Tesseract.createWorker('eng', 1, {
+    workerPath: '/libs/worker.min.js',
+    corePath: '/libs/tesseract-core.wasm.js',
+  })
   return worker
 }
 
@@ -66,25 +63,30 @@ function normalize(s: string) {
 
 async function searchText(txt: string) {
   const t = normalize(txt)
-  if (!t) return []
-  return await searchMedicines(t)
+  if (!t) {
+    emit('scan-complete', { error: 'No recognizable text found in image.' })
+    return
+  }
+  const lang = languageStore.language === 'tl' ? 'filipino' : 'english'
+  const response = await scanMedicines(t, lang)
+  emit('scan-complete', response)
 }
 
 async function processFile(file: File) {
-  status.value = 'Preparing image...'
+  status.value = 'Preparing OCR engine...'
   ocrText.value = ''
-  results.value = []
 
   try {
     const w = await getWorker()
-    status.value = 'Running OCR...'
+    status.value = 'Reading image text...'
     const { data } = await w.recognize(file)
     ocrText.value = data?.text || ''
-    status.value = 'OCR complete'
-    results.value = await searchText(ocrText.value)
+    status.value = 'Analyzing medicine...'
+    await searchText(ocrText.value)
+    status.value = ''
   } catch (err) {
     console.error(err)
-    status.value = 'OCR failed'
+    status.value = 'OCR failed — please try again'
   }
 }
 
@@ -95,7 +97,8 @@ watch(
     if (file) {
       await processFile(file)
     }
-  }
+  },
+  { immediate: true }
 )
 
 // cleanup

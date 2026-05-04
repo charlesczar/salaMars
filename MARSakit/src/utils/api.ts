@@ -1,5 +1,3 @@
-const API_BASE = 'http://localhost:5000/api'
-
 export type Medicine = {
   id: string
   name: string
@@ -16,20 +14,45 @@ export type Medicine = {
   otc: boolean
 }
 
-export async function searchMedicines(query: string): Promise<Medicine[]> {
+export async function searchMedicines(query: string, language: string = 'english'): Promise<any> {
   try {
-    const response = await fetch(`${API_BASE}/medicines?search=${encodeURIComponent(query)}`)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    return await response.json()
+    const url = new URL('/api/medicines', window.location.origin)
+    url.searchParams.set('medicine', query)
+    url.searchParams.set('language', language)
+    const response = await fetch(url)
+    const data = await response.json()
+    if (!response.ok) {
+      return { error: data.error || `Error ${response.status}: ${data.message || 'Unknown error'}` }
+    }
+    console.log('Search response:', data)
+    return data
   } catch (err) {
     console.error('Medicine search error:', err)
-    return []
+    return { error: 'Network error or failed to connect to backend.' }
+  }
+}
+
+export async function scanMedicines(medicineName: string, language: string): Promise<any> {
+  try {
+    const response = await fetch('/api/medicines/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ medicine: medicineName, language })
+    })
+    const data = await response.json()
+    if (!response.ok) {
+      return { error: data.error || `Error ${response.status}: ${data.message || 'Unknown error'}` }
+    }
+    return data
+  } catch (err) {
+    console.error('Medicine scan error:', err)
+    return { error: 'Network error or failed to connect to backend.' }
   }
 }
 
 export async function getAllMedicines(): Promise<Medicine[]> {
   try {
-    const response = await fetch(`${API_BASE}/medicines`)
+    const response = await fetch('/api/medicines')
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     return await response.json()
   } catch (err) {

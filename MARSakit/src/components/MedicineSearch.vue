@@ -49,7 +49,12 @@ const onInput = async () => {
   }
   isLoading.value = true
   try {
-    results.value = await searchMedicines(term)
+    const response = await searchMedicines(term, languageStore.language === 'tl' ? 'filipino' : 'english')
+    if (response?.geminiResponse?.summary) {
+      results.value = [{ id: 'match', name: term, genericName: '', brandNames: [], category: response.geminiResponse.summary }] as any
+    } else {
+      results.value = []
+    }
   } catch (err) {
     console.error('Search error:', err)
     results.value = []

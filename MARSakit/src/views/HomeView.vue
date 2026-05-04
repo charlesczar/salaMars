@@ -28,22 +28,52 @@
 
       <!-- Scanner (inline, only after file selected) -->
       <div v-if="showScanner && selectedFile" class="scanner-container">
-        <MedicineScanner :initialFile="selectedFile" />
+        <MedicineScanner :initialFile="selectedFile" @scan-complete="handleScanComplete" />
       </div>
 
-      <!-- Search Results -->
-      <div v-if="!showScanner && searchResults.length > 0" class="search-results">
-        <div class="results-title">{{ resultsLabel }}</div>
-        <div class="results-list">
-          <div v-for="med in searchResults" :key="med.id" class="result-item">
-            <div class="result-name">{{ med.name }} <small>({{ med.genericName }})</small></div>
-            <div class="result-meta">{{ med.category }} • {{ med.brandNames.join(', ') }}</div>
+      <!-- Search Results / AI Analysis -->
+      <div v-if="!showScanner && searchResponse" class="search-results-wrapper">
+        <div v-if="searchResponse.geminiResponse" class="gemini-card">
+          <div class="gemini-header">
+            <h3>✨ AI Analysis</h3>
+          </div>
+          <div class="gemini-content">
+            <p class="summary">{{ searchResponse.geminiResponse.summary }}</p>
+            
+            <div class="details-grid">
+              <div class="detail-item" v-if="searchResponse.geminiResponse.uses && searchResponse.geminiResponse.uses !== 'Not available in the database.'">
+                <h4>Uses</h4>
+                <p>{{ searchResponse.geminiResponse.uses }}</p>
+              </div>
+              <div class="detail-item" v-if="searchResponse.geminiResponse.sideEffects && searchResponse.geminiResponse.sideEffects !== 'Not available in the database.'">
+                <h4>Side Effects</h4>
+                <p>{{ searchResponse.geminiResponse.sideEffects }}</p>
+              </div>
+              <div class="detail-item" v-if="searchResponse.geminiResponse.warnings && searchResponse.geminiResponse.warnings !== 'Not available in the database.'">
+                <h4>Warnings</h4>
+                <p>{{ searchResponse.geminiResponse.warnings }}</p>
+              </div>
+              <div class="detail-item" v-if="searchResponse.geminiResponse.whenToUse && searchResponse.geminiResponse.whenToUse !== 'Not available in the database.'">
+                <h4>When to Use</h4>
+                <p>{{ searchResponse.geminiResponse.whenToUse }}</p>
+              </div>
+              <div class="detail-item" v-if="searchResponse.geminiResponse.whenToAvoid && searchResponse.geminiResponse.whenToAvoid !== 'Not available in the database.'">
+                <h4>When to Avoid</h4>
+                <p>{{ searchResponse.geminiResponse.whenToAvoid }}</p>
+              </div>
+            </div>
+            
+            <div v-if="searchResponse.searchCorrection" class="correction">
+              💡 {{ searchResponse.searchCorrection }}
+            </div>
           </div>
         </div>
+        
+        <div v-else-if="searchResponse.message || searchResponse.error" class="no-results gemini-card">
+          {{ searchResponse.message || searchResponse.error }}
+        </div>
       </div>
-      <div v-if="!showScanner && searchQuery && searchResults.length === 0 && !isSearching" class="no-results">
-        {{ noResultsLabel }}
-      </div>
+
       <div v-if="!showScanner && isSearching" class="searching-status">
         {{ searchingLabel }}
       </div>
@@ -67,7 +97,7 @@ const fileInput = ref<HTMLInputElement>()
 const showScanner = ref(false)
 const selectedFile = ref<File | null>(null)
 const searchQuery = ref('')
-const searchResults = ref<Medicine[]>([])
+const searchResponse = ref<any>(null)
 const isSearching = ref(false)
 const languageStore = useLanguageStore()
 
@@ -83,22 +113,10 @@ const uploadTitle = computed(() =>
     : 'Upload image'
 )
 
-const resultsLabel = computed(() =>
-  languageStore.language === 'tl'
-    ? 'Natagpuang Gamot'
-    : 'Found Medicines'
-)
-
-const noResultsLabel = computed(() =>
-  languageStore.language === 'tl'
-    ? 'Walang natagpuang gamot'
-    : 'No medicines found'
-)
-
 const searchingLabel = computed(() =>
   languageStore.language === 'tl'
-    ? 'Naghahanap...'
-    : 'Searching...'
+    ? 'Naghahanap at nag-aanalisa...'
+    : 'Searching and analyzing...'
 )
 
 const performSearch = async () => {
@@ -106,11 +124,13 @@ const performSearch = async () => {
   if (!term) return
   showScanner.value = false
   isSearching.value = true
+  searchResponse.value = null
   try {
-    searchResults.value = await searchMedicines(term)
+    const lang = languageStore.language === 'tl' ? 'filipino' : 'english'
+    searchResponse.value = await searchMedicines(term, lang)
   } catch (err) {
     console.error('Search error:', err)
-    searchResults.value = []
+    searchResponse.value = { error: 'Failed to search for medicines.' }
   } finally {
     isSearching.value = false
   }
@@ -119,9 +139,16 @@ const performSearch = async () => {
 const handleImageUpload = (e: Event) => {
   const input = e.target as HTMLInputElement
   if (input.files && input.files.length > 0) {
-    selectedFile.value = input.files[0]
+    selectedFile.value = input.files[0] || null
+    searchResponse.value = null // clear previous results
     showScanner.value = true
+    input.value = '' // clear so the same file can be selected again
   }
+}
+
+const handleScanComplete = (response: any) => {
+  searchResponse.value = response
+  showScanner.value = false // hide scanner, show result card
 }
 
 const goToPharmacyMap = () => {
@@ -237,69 +264,96 @@ const goToPharmacyMap = () => {
 }
 
 /* Search Results Display */
-.search-results {
-  max-width: 600px;
-  margin: 1rem auto 0;
+.search-results-wrapper {
+  max-width: 650px;
+  margin: 1.5rem auto 0;
+  width: 100%;
+}
+
+.gemini-card {
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-height: 400px;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  color: #1e293b;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  max-height: 50vh;
   overflow-y: auto;
 }
 
-.results-title {
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  color: #333;
-  font-size: 0.95rem;
-}
-
-.results-list {
+.gemini-header h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #2563eb;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
 
-.result-item {
-  padding: 10px;
-  background: #f8f8f8;
-  border-radius: 8px;
-  border-left: 4px solid #10b981;
+.gemini-content .summary {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.result-name {
-  font-weight: 600;
-  color: #333;
-  font-size: 0.95rem;
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
 }
 
-.result-name small {
-  font-weight: 400;
-  color: #666;
-}
-
-.result-meta {
+.detail-item h4 {
+  margin: 0 0 0.5rem 0;
   font-size: 0.85rem;
-  color: #888;
-  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.detail-item p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.correction {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #fef3c7;
+  color: #b45309;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .no-results {
-  max-width: 600px;
-  margin: 1rem auto 0;
   text-align: center;
-  color: #b00;
-  font-size: 0.95rem;
+  color: #ef4444;
+  font-weight: 500;
 }
 
 .searching-status {
   max-width: 600px;
-  margin: 1rem auto 0;
+  margin: 1.5rem auto 0;
   text-align: center;
-  color: #666;
-  font-size: 0.95rem;
-  font-style: italic;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
 }
 
 /* Scanner Container */

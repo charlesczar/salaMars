@@ -203,13 +203,18 @@ export const searchMedicine = async (req: Request, res: Response) => {
         });
     }
 
-    const explanation = await askGemini(
-        buildExplainPrompt(
-            matchedMedicine,
-            resolvedLanguage,
-            matchedOn ? { query: medicine, matchedOn } : { query: medicine }
-        )
-    );
+    let explanation = null;
+    try {
+        explanation = await askGemini(
+            buildExplainPrompt(
+                matchedMedicine,
+                resolvedLanguage,
+                matchedOn ? { query: medicine, matchedOn } : { query: medicine }
+            )
+        );
+    } catch (error) {
+        console.warn('Gemini unavailable, using offline fallback');
+    }
 
     const geminiResponse = hasUsefulGeminiResponse(explanation)
         ? explanation
@@ -242,9 +247,14 @@ export const scanMedicine = async (req: Request, res: Response) => {
         });
     }
 
-    const explanation = await askGemini(
-        buildExplainPrompt(matchedMedicine, resolvedLanguage, { query: medicine, matchedOn: getMatchContext(matchedMedicine, medicine) })
-    );
+    let explanation = null;
+    try {
+        explanation = await askGemini(
+            buildExplainPrompt(matchedMedicine, resolvedLanguage, { query: medicine, matchedOn: getMatchContext(matchedMedicine, medicine) })
+        );
+    } catch (error) {
+        console.warn('Gemini unavailable, using offline fallback');
+    }
 
     const geminiResponse = hasUsefulGeminiResponse(explanation)
         ? explanation
