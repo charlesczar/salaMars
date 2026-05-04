@@ -1,5 +1,5 @@
 export const envConfig = () => {
-    const required = ["PORT", "GEMINI_API_KEY"];
+    const required = ["PORT", "GEMINI_API_KEY", "FRONTEND_URL"];
     
     for (const key of required) {
         if (!process.env[key]) {
