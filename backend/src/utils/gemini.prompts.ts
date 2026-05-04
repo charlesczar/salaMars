@@ -9,31 +9,7 @@ STRICT RULES:
 - Do NOT modify or omit warnings.
 - If a field is missing, respond with: "Not available in the database."
 
-LANGUAGE: Taglish (Filipino-English mix) — simple, clear, easy to understand.
-AUDIENCE: Ordinary Filipinos with no medical background.
 `.trim();
-
-// @desc Check for typos
-export function buildTypoCheckPrompt(query: string, medicineNames: string[]): string {
-    return `
-        You are a spell-checker for medicine names.
-
-        MEDICINE LIST:
-        ${medicineNames.join("\n")}
-
-        USER QUERY: "${query}"
-
-        TASK:
-        - Check if the query matches or closely resembles any medicine in the list.
-        - A match includes exact matches, typos, alternate spellings, or brand/generic name variations.
-
-        Return ONLY valid JSON (no markdown, no extra text):
-        {
-            "matched": true or false,
-            "correctedName": "exact name from the list, or null if no match"
-        }
-            `.trim();
-}
 
 // @desc Build prompt for Gemini to explain medicine info based on database context
 function formatValue(value: string | string[] | boolean | undefined): string {
@@ -54,18 +30,31 @@ function formatValue(value: string | string[] | boolean | undefined): string {
 }
 
 // TO DO: Add a param for custom language preference of the user (Taglish, Filipino, English)
-export function buildExplainPrompt(med: any): string {
+export function buildExplainPrompt(med: any, searchContext?: { query: string; matchedOn?: 'brand' | 'generic' | 'exact' | 'other' }): string {
+    const queryLine = searchContext?.query ? `User searched for: ${searchContext.query}` : '';
+    const matchLine = searchContext?.matchedOn === 'brand'
+        ? 'The user searched using a brand name. Mention that clearly and also state the generic/active medicine name.'
+        : searchContext?.matchedOn === 'generic'
+            ? 'The user searched using a generic name. Mention that clearly and also state any common brand name if available.'
+            : 'If the search term differs from the medicine record name, clarify the relationship in plain language.';
+
     return `
         MEDICINE DATA:
         Name: ${formatValue(med.name)}
         Generic Name: ${formatValue(med.genericName)}
-        Uses: ${formatValue(med.uses)}            Side Effects: ${formatValue(med.sideEffects)}
+        Uses: ${formatValue(med.uses)}            
+        Side Effects: ${formatValue(med.sideEffects)}
         Warnings: ${formatValue(med.warnings)}
         Contraindications: ${formatValue(med.contraindications)}
         OTC: ${formatValue(med.otc)}
 
+        LANGUAGE: Taglish (Filipino-English mix) — simple, clear, easy to understand.
+        AUDIENCE: Ordinary Filipinos with no medical background.
+        ${queryLine}
+        MATCH CONTEXT: ${matchLine}
+
         FORMAT:
-        Return ONLY valid JSON on a single line for each string value:
+        Return ONLY a raw JSON object (no markdown, no code fences, no extra text):
         {    
             "summary": "...",
             "uses": "...",
@@ -75,16 +64,13 @@ export function buildExplainPrompt(med: any): string {
             "whenToAvoid": "..."
         }
 
-        example JSON:
-        {
-            "summary": "Ang Paracetamol ay gamot para sa lagnat at pananakit.",
-            "uses": "Para sa lagnat at mild na sakit tulad ng headache.",
-            "warnings": "Huwag sosobra sa dose at iwasan ang alak.",
-            "sideEffects": "Maaaring makaranas ng rash o pagsusuka.",
-            "whenToUse": "Kung may lagnat o mild na sakit ng katawan.",
-            "whenToAvoid": "Iwasan kung ikaw ay allergic sa paracetamol o may problema sa atay."
-        }
-
-        Note: State the medicine availability clearly. If the medicine is OTC, say "Available over-the-counter." If it requires a prescription, say "Requires prescription."
+        Rules:
+        - Keep each value to one sentence or short paragraph.
+        - Do not use markdown, bullets, or code fences.
+        - Do not add newline characters inside any string.
+        - State the medicine availability clearly inside "summary" only.
+        - When the user searched a brand name, say that it is the brand name for the generic medicine, instead of presenting the generic name as if it were the search term.
+        - When the user searched a generic name, keep the generic name as the main term and mention brand names only as helpful context.
+        - If OTC, say "Available over-the-counter." If prescription-only, say "Requires prescription."
     `;
 }
