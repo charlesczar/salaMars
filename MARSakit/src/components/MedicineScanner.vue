@@ -61,15 +61,31 @@ async function getWorker() {
 }
 
 function normalize(s: string) {
-  return s.trim().toLowerCase()
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '') // Remove special chars
+    // Normalize common OCR errors
+    .replace(/0/g, 'o')
+    .replace(/1/g, 'i')
 }
 
 async function searchText(txt: string) {
-  const t = normalize(txt)
-  if (!t) return []
-  return await searchMedicines(t)
+  const words = txt
+    .split(/\s+/)
+    .map(w => normalize(w))
+
+  const allResults = await Promise.all(
+    words.map(word => searchMedicines(word))
+  )
+  
+  const uniqueMeds = new Map()
+  allResults.flat().forEach(med => uniqueMeds.set(med.id, med))
+  return Array.from(uniqueMeds.values())
 }
 
+
+// Main processing function
 async function processFile(file: File) {
   status.value = 'Preparing image...'
   ocrText.value = ''
