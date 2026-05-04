@@ -83,6 +83,33 @@ async function searchText(txt: string) {
   allResults.flat().forEach(med => uniqueMeds.set(med.id, med))
   return Array.from(uniqueMeds.values())
 }
+async function preprocessImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    img.onload = () => {
+      canvas.width = img.width
+      canvas.height = img.height
+      // Draw original
+      ctx.drawImage(img, 0, 0)
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+      // Convert to grayscale and increase contrast
+      for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3
+        // Increase contrast
+        const contrasted = ((avg - 128) * 1.5) + 128
+        const clamped = Math.max(0, Math.min(255, contrasted))
+        data[i] = data[i + 1] = data[i + 2] = clamped
+      }
+      ctx.putImageData(imageData, 0, 0)
+      canvas.toBlob((blob) => resolve(blob!), 'image/png')
+    }
+    img.src = URL.createObjectURL(file)
+  })
+}
 
 
 // Main processing function
