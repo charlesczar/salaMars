@@ -39,7 +39,8 @@ export async function askGemini(prompt: string): Promise<any> {
         config: {
             systemInstruction: SYSTEM_INSTRUCTION,
             temperature: 0.3,
-            maxOutputTokens: 800,
+            maxOutputTokens: 2048,
+            responseMimeType: 'application/json',
         },
     });
 
