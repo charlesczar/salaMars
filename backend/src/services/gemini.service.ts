@@ -33,29 +33,39 @@ function tryRepairJson(raw: string): string {
 }
 
 export async function askGemini(prompt: string): Promise<any> {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            systemInstruction: SYSTEM_INSTRUCTION,
-            temperature: 0.3,
-            maxOutputTokens: 2048,
-            responseMimeType: 'application/json',
-        },
-    });
-
-    const raw = response.text ?? "";
-    const cleaned = extractJsonPayload(raw);
-
     try {
-        return JSON.parse(cleaned);
-    } catch {
-        const repaired = tryRepairJson(cleaned);
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                systemInstruction: SYSTEM_INSTRUCTION,
+                temperature: 0.3,
+                maxOutputTokens: 2048,
+                responseMimeType: 'application/json',
+            },
+        });
+
+        const raw = response.text ?? "";
+        const cleaned = extractJsonPayload(raw);
 
         try {
-            return JSON.parse(repaired);
+            return JSON.parse(cleaned);
         } catch {
-            throw new Error(`Gemini returned invalid JSON: ${raw}`);
+            const repaired = tryRepairJson(cleaned);
+            try {
+                return JSON.parse(repaired);
+            } catch {
+                throw new Error(`Gemini returned invalid JSON: ${raw}`);
+            }
+        }
+
+    } catch (error: any) {
+        try {
+            const parsed = JSON.parse(error.message);
+            const { code, message, status } = parsed?.error ?? {};
+            throw new Error(`Gemini API Error [${code} ${status}]: ${message}`);
+        } catch {
+            throw new Error(error.message ?? 'Unknown Gemini error');
         }
     }
 }
