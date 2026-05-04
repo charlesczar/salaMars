@@ -7,9 +7,11 @@
       @input="onInput"
       :placeholder="labels.placeholder"
       class="search-input"
+      :disabled="isLoading"
     />
 
-    <div v-if="results.length === 0 && q" class="no-results">{{ labels.noResults }}</div>
+    <div v-if="isLoading" class="status">{{ labels.searching }}</div>
+    <div v-if="results.length === 0 && q && !isLoading" class="no-results">{{ labels.noResults }}</div>
 
     <ul v-if="results.length > 0" class="results">
       <li v-for="med in results" :key="med.id" class="result-item">
@@ -22,34 +24,39 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { MEDICINES, type Medicine } from '@/data/medicines'
+import { type Medicine } from '@/data/medicines'
 import { useLanguageStore } from '@/stores/language'
+import { searchMedicines } from '@/utils/api'
 
 const idInput = 'medicine-search-input'
 const q = ref('')
+const results = ref<Medicine[]>([])
+const isLoading = ref(false)
 
 const languageStore = useLanguageStore()
 
 const labels = computed(() => {
   return languageStore.language === 'tl'
-    ? { searchLabel: 'Maghanap ng Gamot', placeholder: 'Mag-type ng pangalan o brand', noResults: 'Walang natagpuang gamot' }
-    : { searchLabel: 'Search Medicine', placeholder: 'Type name or brand', noResults: 'No medicines found' }
+    ? { searchLabel: 'Maghanap ng Gamot', placeholder: 'Mag-type ng pangalan o brand', noResults: 'Walang natagpuang gamot', searching: 'Naghahanap...' }
+    : { searchLabel: 'Search Medicine', placeholder: 'Type name or brand', noResults: 'No medicines found', searching: 'Searching...' }
 })
 
-const normalize = (s: string) => s.trim().toLowerCase()
-
-const results = computed(() => {
-  const term = normalize(q.value)
-  if (!term) return [] as Medicine[]
-  return MEDICINES.filter((m) => {
-    if (m.name.toLowerCase().includes(term)) return true
-    if (m.genericName.toLowerCase().includes(term)) return true
-    if (m.brandNames.join(' ').toLowerCase().includes(term)) return true
-    return m.searchKeys.some((k) => k.toLowerCase().includes(term))
-  })
-})
-
-const onInput = () => {}
+const onInput = async () => {
+  const term = q.value.trim()
+  if (!term) {
+    results.value = []
+    return
+  }
+  isLoading.value = true
+  try {
+    results.value = await searchMedicines(term)
+  } catch (err) {
+    console.error('Search error:', err)
+    results.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
