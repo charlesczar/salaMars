@@ -150,7 +150,7 @@ const labels = computed(() => {
       headerPharmacyButton: 'Maghanap ng Botika',
       subtitle: 'Maghanap ng mga pharMARScies na malapit. Bawat gamot matatagpuan.',
       uploadImage: 'Mag-upload ng Larawan',
-      pharmacyNearMe: 'Botika sa Malapit',
+      pharmacyNearMe: 'Malapit na Botika',
     }
   }
 
