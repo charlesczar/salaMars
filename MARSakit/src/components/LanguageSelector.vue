@@ -12,7 +12,9 @@ const onChange = (value: LanguageCode) => {
 
 <template>
   <div class="lang-switch">
-    <label class="lang-label" for="lang">Language</label>
+    <div class="lang-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    </div>
     <select
       id="lang"
       class="lang-select"
@@ -22,50 +24,60 @@ const onChange = (value: LanguageCode) => {
     >
       <option value="en">English</option>
       <option value="tl">Tagalog</option>
+      <option value="bisaya">Bisaya</option>
     </select>
   </div>
 </template>
 
 <style scoped>
 .lang-switch {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  z-index: 2000;
   display: flex;
   align-items: center;
-  gap: 10px;
-
-  padding: 10px 12px;
-  border-radius: 14px;
-
-  background: rgba(15, 14, 23, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 50px;
+  padding: 4px 12px;
+  gap: 6px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
-.lang-label {
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 12px;
-  font-weight: 600;
+.lang-switch:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.08);
+}
+
+.lang-icon {
+  display: flex;
+  align-items: center;
+  color: #64748b;
 }
 
 .lang-select {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
-  color: white;
-
-  padding: 6px 10px;
-  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
   outline: none;
-
-  font-weight: 700;
   cursor: pointer;
+  padding-right: 4px;
+  font-family: 'Inter', sans-serif;
+  appearance: none;
 }
 
-.lang-select:focus {
-  border-color: rgba(96, 165, 250, 0.7);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+/* Custom arrow for select */
+.lang-switch::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #94a3b8;
+  border-bottom: 2px solid #94a3b8;
+  transform: rotate(45deg);
+  margin-left: -2px;
+  margin-top: -4px;
+  pointer-events: none;
 }
 </style>

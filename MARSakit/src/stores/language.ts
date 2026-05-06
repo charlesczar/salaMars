@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export type LanguageCode = 'en' | 'tl'
+export type LanguageCode = 'en' | 'tl' | 'bisaya'
 
 const STORAGE_KEY = 'marsakit.language'
 
@@ -10,7 +10,7 @@ export const useLanguageStore = defineStore('language', () => {
 
   const load = () => {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw === 'en' || raw === 'tl') language.value = raw
+    if (raw === 'en' || raw === 'tl' || raw === 'bisaya') language.value = raw
   }
 
   const setLanguage = (next: LanguageCode) => {

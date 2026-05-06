@@ -1,6 +1,7 @@
 <template>
   <div class="medicine-scanner">
     <div class="status" v-if="status">{{ status }}</div>
+    <div class="found-label" v-if="ocrText">{{ labels.foundLabel }}</div>
     <div class="ocr-text" v-if="ocrText">{{ ocrText }}</div>
 
   </div>
@@ -20,11 +21,41 @@ const emit = defineEmits(['scan-complete'])
 
 const languageStore = useLanguageStore()
 
-const labels = computed(() =>
-  languageStore.language === 'tl'
-    ? { foundLabel: 'Natagpuang Gamot' }
-    : { foundLabel: 'Found Medicines' },
-)
+const labels = computed(() => {
+  if (languageStore.language === 'tl') {
+    return {
+      foundLabel: 'Natagpuang Gamot',
+      preparing: 'Inihahanda ang OCR engine...',
+      enhancing: 'Pinapaganda ang kalidad ng larawan...',
+      reading: 'Binabasa ang teksto sa larawan...',
+      analyzing: 'Sinusuri ang gamot...',
+      failed: 'Nabigo ang OCR — pakisubukan muli',
+      noMedicine: 'Walang nakilalang gamot sa larawan. Pakisubukan muli gamit ang mas malinaw na larawan.',
+    }
+  }
+
+  if (languageStore.language === 'bisaya') {
+    return {
+      foundLabel: 'Nakitang Tambal',
+      preparing: 'Giandam ang OCR engine...',
+      enhancing: 'Giapas-an ang kalidad sa hulagway...',
+      reading: 'Gibasa ang teksto sa hulagway...',
+      analyzing: 'Ginasusi ang tambal...',
+      failed: 'Napakyas ang OCR — palihog sulayi pag-usab',
+      noMedicine: 'Walay nakaila nga tambal sa hulagway. Palihog sulayi pag-usab gamit ang mas klarong litrato.',
+    }
+  }
+
+  return {
+    foundLabel: 'Found Medicines',
+    preparing: 'Preparing OCR engine...',
+    enhancing: 'Enhancing image quality...',
+    reading: 'Reading image text...',
+    analyzing: 'Analyzing medicine...',
+    failed: 'OCR failed — please try again',
+    noMedicine: 'No medicine recognized in the image. Please try again with a clearer photo.',
+  }
+})
 
 async function searchText(txt: string) {
   // Extract words of reasonable length (ignore tiny text/noise)
@@ -36,7 +67,13 @@ async function searchText(txt: string) {
   // Sort words by length descending (medicine names are usually prominent)
   const sortedWords = Array.from(new Set(words)).sort((a, b) => b.length - a.length)
   
-  const lang = languageStore.language === 'tl' ? 'filipino' : 'english'
+  const langMap: Record<string, string> = {
+    'en': 'english',
+    'tl': 'filipino',
+    'bisaya': 'bisaya'
+  }
+  const lang = langMap[languageStore.language] || 'english'
+  console.log(`Scanning in language: ${lang} (Store value: ${languageStore.language})`)
   
   // Test at most the top 5 words sequentially to avoid spamming the backend API
   for (let i = 0; i < Math.min(5, sortedWords.length); i++) {
@@ -120,24 +157,24 @@ async function preprocessImage(file: File): Promise<Blob> {
 
 // Main processing function
 async function processFile(file: File) {
-  status.value = 'Preparing OCR engine...'
+  status.value = labels.value.preparing
   ocrText.value = ''
 
   try {
     const w = await getWorker()
-    status.value = 'Enhancing image quality...'
+    status.value = labels.value.enhancing
     const preprocessedBlob = await preprocessImage(file)
     
-    status.value = 'Reading image text...'
+    status.value = labels.value.reading
     const { data } = await w.recognize(preprocessedBlob)
     ocrText.value = data?.text || ''
     
-    status.value = 'Analyzing medicine...'
+    status.value = labels.value.analyzing
     await searchText(ocrText.value)
     status.value = ''
   } catch (err) {
     console.error(err)
-    status.value = 'OCR failed — please try again'
+    status.value = labels.value.failed
   }
 }
 

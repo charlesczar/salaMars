@@ -6,21 +6,25 @@
         <span class="logo-dark">MARS</span><span class="logo-light">akit</span>
       </div>
       <div class="nav-links">
-        <button class="nav-btn" @click="goToPharmacyMap">Find a Pharmacy</button>
+        <LanguageSelector />
+        <button class="nav-btn" @click="goToPharmacyMap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          {{ labels.headerPharmacyButton }}
+        </button>
       </div>
     </header>
 
     <main class="landing-content">
       <div class="hero-section">
         <div class="pill-badge">
-          <span class="dot"></span> AI ANALYSIS · PHARMACY LOCATOR · LIVE RESULTS
+          <span class="dot"></span> MEDICINE · AI ANALYSIS · PHARMACY LOCATOR
         </div>
         
         <h1 class="main-title">
           <span class="title-dark">MARS</span><span class="title-light">akit</span>
         </h1>
         
-        <p class="subtitle">Find pharMARScies near you. Every medicine found.</p>
+        <p class="subtitle">{{ labels.subtitle }}</p>
 
         <!-- Search Bar -->
         <div class="search-bar-wrapper">
@@ -36,7 +40,7 @@
 
         <div class="action-buttons">
           <label class="btn-secondary" :title="uploadTitle">
-            <span class="icon">📷</span> Upload Image
+            <span class="icon">📷</span> {{ labels.uploadImage }}
             <input
               ref="fileInput"
               type="file"
@@ -46,7 +50,7 @@
             />
           </label>
           <button @click="goToPharmacyMap" class="btn-primary">
-            Pharmacy Near Me <span class="arrow">→</span>
+            {{ labels.pharmacyNearMe }} <span class="arrow">→</span>
           </button>
         </div>
       </div>
@@ -123,6 +127,7 @@ import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { searchMedicines, getAllMedicines, type Medicine } from '@/utils/api'
 import MedicineScanner from '@/components/MedicineScanner.vue'
+import LanguageSelector from '@/components/LanguageSelector.vue'
 
 const router = useRouter()
 const fileInput = ref<HTMLInputElement>()
@@ -137,6 +142,33 @@ const medicines = ref<Medicine[]>([])
 const duplicatedMedicines = computed(() => {
   if (!medicines.value.length) return []
   return [...medicines.value, ...medicines.value, ...medicines.value, ...medicines.value, ...medicines.value]
+})
+
+const labels = computed(() => {
+  if (languageStore.language === 'tl') {
+    return {
+      headerPharmacyButton: 'Maghanap ng Botika',
+      subtitle: 'Maghanap ng mga pharMARScies na malapit. Bawat gamot matatagpuan.',
+      uploadImage: 'Mag-upload ng Larawan',
+      pharmacyNearMe: 'Botika sa Malapit',
+    }
+  }
+
+  if (languageStore.language === 'bisaya') {
+    return {
+      headerPharmacyButton: 'Pangita og Botika',
+      subtitle: 'Pangitaa ang mga pharMARScies duol nimo. Matag tambal nga makita.',
+      uploadImage: 'I-upload ang Hulagway',
+      pharmacyNearMe: 'Botika Duol Nimo',
+    }
+  }
+
+  return {
+    headerPharmacyButton: 'Find a Pharmacy',
+    subtitle: 'Find pharMARScies near you. Every medicine found.',
+    uploadImage: 'Upload Image',
+    pharmacyNearMe: 'Pharmacy Near Me',
+  }
 })
 
 onMounted(async () => {
@@ -161,23 +193,23 @@ onMounted(async () => {
   ]
 })
 
-const searchPlaceholder = computed(() =>
-  languageStore.language === 'tl'
-    ? 'Maghanap ng gamot...'
-    : 'Search for medicine...'
-)
+const searchPlaceholder = computed(() => {
+  if (languageStore.language === 'tl') return 'Maghanap ng gamot...'
+  if (languageStore.language === 'bisaya') return 'Pangita og tambal...'
+  return 'Search for medicine...'
+})
 
-const uploadTitle = computed(() =>
-  languageStore.language === 'tl'
-    ? 'I-upload ang larawan'
-    : 'Upload image'
-)
+const uploadTitle = computed(() => {
+  if (languageStore.language === 'tl') return 'I-upload ang larawan'
+  if (languageStore.language === 'bisaya') return 'I-upload ang hulagway'
+  return 'Upload image'
+})
 
-const searchingLabel = computed(() =>
-  languageStore.language === 'tl'
-    ? 'Naghahanap at nag-aanalisa...'
-    : 'Searching and analyzing...'
-)
+const searchingLabel = computed(() => {
+  if (languageStore.language === 'tl') return 'Naghahanap at nag-aanalisa...'
+  if (languageStore.language === 'bisaya') return 'Nangita ug naga-analisar...'
+  return 'Searching and analyzing...'
+})
 
 const performSearch = async () => {
   const term = searchQuery.value.trim()
@@ -186,7 +218,13 @@ const performSearch = async () => {
   isSearching.value = true
   searchResponse.value = null
   try {
-    const lang = languageStore.language === 'tl' ? 'filipino' : 'english'
+    const langMap: Record<string, string> = {
+      'en': 'english',
+      'tl': 'filipino',
+      'bisaya': 'bisaya' // You might need 'cebuano' here if your backend uses that
+    }
+    const lang = langMap[languageStore.language] || 'english'
+    console.log(`Searching for "${term}" in language: ${lang} (Store value: ${languageStore.language})`)
     searchResponse.value = await searchMedicines(term, lang)
   } catch (err) {
     console.error('Search error:', err)
@@ -235,8 +273,15 @@ const goToPharmacyMap = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 3rem;
+  padding: 1rem 3rem;
   width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .logo {
@@ -256,21 +301,36 @@ const goToPharmacyMap = () => {
 
 .nav-links {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .nav-btn {
-  background: transparent;
-  border: none;
-  color: #475569;
-  font-weight: 600;
-  font-size: 0.95rem;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: #3b82f6;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: 50px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .nav-btn:hover {
-  color: #1e3a8a;
+  background: #f0f9ff;
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.nav-btn:active {
+  transform: translateY(0);
 }
 
 /* Main Content */

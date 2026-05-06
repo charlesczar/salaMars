@@ -35,10 +35,12 @@ const isLoading = ref(false)
 
 const languageStore = useLanguageStore()
 
-const labels = computed(() => {
-  return languageStore.language === 'tl'
-    ? { searchLabel: 'Maghanap ng Gamot', placeholder: 'Mag-type ng pangalan o brand', noResults: 'Walang natagpuang gamot', searching: 'Naghahanap...' }
-    : { searchLabel: 'Search Medicine', placeholder: 'Type name or brand', noResults: 'No medicines found', searching: 'Searching...' }
+  const labels = computed(() => {
+  if (languageStore.language === 'tl')
+    return { searchLabel: 'Maghanap ng Gamot', placeholder: 'Mag-type ng pangalan o brand', noResults: 'Walang natagpuang gamot', searching: 'Naghahanap...' }
+  if (languageStore.language === 'bisaya')
+    return { searchLabel: 'Pangita og Tambal', placeholder: 'I-type ang ngalan o brand', noResults: 'Walay natagpang tambal', searching: 'Nangita...' }
+  return { searchLabel: 'Search Medicine', placeholder: 'Type name or brand', noResults: 'No medicines found', searching: 'Searching...' }
 })
 
 const onInput = async () => {
@@ -49,7 +51,8 @@ const onInput = async () => {
   }
   isLoading.value = true
   try {
-    const response = await searchMedicines(term, languageStore.language === 'tl' ? 'filipino' : 'english')
+    const langParam = languageStore.language === 'tl' ? 'filipino' : languageStore.language === 'bisaya' ? 'bisaya' : 'english'
+    const response = await searchMedicines(term, langParam)
     if (response?.geminiResponse?.summary) {
       results.value = [{ id: 'match', name: term, genericName: '', brandNames: [], category: response.geminiResponse.summary }] as any
     } else {
