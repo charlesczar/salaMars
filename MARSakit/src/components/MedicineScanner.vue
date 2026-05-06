@@ -9,7 +9,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { loadExternalScript } from '@/utils/loadExternalScript'
-import { type Medicine } from '@/data/medicines'
 import { useLanguageStore } from '@/stores/language'
 import { scanMedicines } from '@/utils/api'
 
@@ -26,6 +25,33 @@ const labels = computed(() =>
     ? { foundLabel: 'Natagpuang Gamot' }
     : { foundLabel: 'Found Medicines' },
 )
+
+async function searchText(txt: string) {
+  // Extract words of reasonable length (ignore tiny text/noise)
+  const words = txt
+    .replace(/[^a-zA-Z]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3)
+    
+  // Sort words by length descending (medicine names are usually prominent)
+  const sortedWords = Array.from(new Set(words)).sort((a, b) => b.length - a.length)
+  
+  const lang = languageStore.language === 'tl' ? 'filipino' : 'english'
+  
+  // Test at most the top 5 words sequentially to avoid spamming the backend API
+  for (let i = 0; i < Math.min(5, sortedWords.length); i++) {
+    const word = sortedWords[i]
+    if (!word) continue
+
+    const response = await scanMedicines(word, lang)
+    if (response && !response.error) {
+      emit('scan-complete', response)
+      return
+    }
+  }
+
+  emit('scan-complete', { error: 'No medicine recognized in the image. Please try again with a clearer photo.' })
+}
 
 const status = ref('')
 const ocrText = ref('')
@@ -57,29 +83,6 @@ async function getWorker() {
   return worker
 }
 
-function normalize(s: string) {
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '') // Remove special chars
-    // Normalize common OCR errors
-    .replace(/0/g, 'o')
-    .replace(/1/g, 'i')
-}
-
-async function searchText(txt: string) {
-  const words = txt
-    .split(/\s+/)
-    .map(w => normalize(w))
-
-  const allResults = await Promise.all(
-    words.map(word => searchMedicines(word))
-  )
-  
-  const uniqueMeds = new Map()
-  allResults.flat().forEach(med => uniqueMeds.set(med.id, med))
-  return Array.from(uniqueMeds.values())
-}
 async function preprocessImage(file: File): Promise<Blob> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -95,14 +98,20 @@ async function preprocessImage(file: File): Promise<Blob> {
       const data = imageData.data
       // Convert to grayscale and increase contrast
       for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3
+        const red = data[i] ?? 0
+        const green = data[i + 1] ?? 0
+        const blue = data[i + 2] ?? 0
+        const avg = (red + green + blue) / 3
         // Increase contrast
         const contrasted = ((avg - 128) * 1.5) + 128
         const clamped = Math.max(0, Math.min(255, contrasted))
         data[i] = data[i + 1] = data[i + 2] = clamped
       }
       ctx.putImageData(imageData, 0, 0)
-      canvas.toBlob((blob) => resolve(blob!), 'image/png')
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(img.src) // prevent memory leaks
+        resolve(blob!)
+      }, 'image/png')
     }
     img.src = URL.createObjectURL(file)
   })
@@ -116,9 +125,13 @@ async function processFile(file: File) {
 
   try {
     const w = await getWorker()
+    status.value = 'Enhancing image quality...'
+    const preprocessedBlob = await preprocessImage(file)
+    
     status.value = 'Reading image text...'
-    const { data } = await w.recognize(file)
+    const { data } = await w.recognize(preprocessedBlob)
     ocrText.value = data?.text || ''
+    
     status.value = 'Analyzing medicine...'
     await searchText(ocrText.value)
     status.value = ''
