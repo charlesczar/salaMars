@@ -28,12 +28,13 @@
         <input
           class="search-input"
           type="text"
-          placeholder="Search pharmacies…"
-          aria-label="Search pharmacies"
+          :placeholder="labels.searchPlaceholder"
+          :aria-label="labels.searchAriaLabel"
           v-model="searchQuery"
           @input="filterMarkers"
         />
       </div>
+      <LanguageSelector />
     </header>
 
     <!-- ─── Map (fills all remaining space) ──────────────────── -->
@@ -51,8 +52,8 @@
         class="fab"
         :class="{ loading: isLocating }"
         @click="refresh"
-        aria-label="Locate me and refresh pharmacies"
-        title="Locate me"
+        :aria-label="labels.locating"
+        :title="labels.locating"
       >
         <svg
           v-if="!isLocating"
@@ -84,7 +85,7 @@
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
-        {{ pharmacyCount }} pharmacies nearby
+        {{ labels.nearbyPharmacies(pharmacyCount) }}
       </div>
 
       <!-- Bottom Sheet / Desktop Sidebar -->
@@ -100,7 +101,7 @@
           <div class="sheet-handle" @click="sheetExpanded = !sheetExpanded"></div>
           <div class="sheet-body">
             <div class="sheet-pill-row">
-              <span class="sheet-badge">Pharmacy</span>
+              <span class="sheet-badge">{{ labels.pharmacyBadge }}</span>
               <button class="sheet-close" @click="closeSheet" aria-label="Close">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -157,13 +158,13 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="3 11 22 2 13 21 11 13 3 11" />
                 </svg>
-                Directions
+                {{ labels.directions }}
               </button>
               <button class="action-btn secondary" @click="closeSheet">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
-                Dismiss
+                {{ labels.dismiss }}
               </button>
             </div>
           </div>
@@ -174,8 +175,10 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick, computed } from 'vue'
+import LanguageSelector from './LanguageSelector.vue'
 import { useRouter } from 'vue-router'
+import { useLanguageStore } from '@/stores/language'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import iconUrl from 'leaflet/dist/images/marker-icon.png'
@@ -188,6 +191,67 @@ L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl })
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 const router = useRouter()
+const languageStore = useLanguageStore()
+
+const labels = computed(() => {
+  if (languageStore.language === 'tl') {
+    return {
+      searchPlaceholder: 'Maghanap ng mga botika…',
+      searchAriaLabel: 'Maghanap ng mga botika',
+      nearbyPharmacies: (count) => `${count} botika sa malapit`,
+      resultsFor: (shown, query) => `${shown} resulta para sa "${query}"`,
+      pharmacyBadge: 'Botika',
+      directions: 'Ruta',
+      dismiss: 'Isara',
+      locating: 'Hinahanap ang iyong lokasyon…',
+      searching: 'Naghahanap ng mga botika…',
+      failedLoad: 'Nabigong i-load ang mga botika',
+      noDataReturned: 'Walang natanggap na datos',
+      noPharmaciesFound: 'Walang nahanap na botika sa malapit',
+      networkError: 'Error sa network — subukan muli',
+      geolocationUnsupported: 'Hindi suportado ang pagkuha ng lokasyon',
+      locationDenied: 'Tinanggihan ang pag-access sa lokasyon',
+    }
+  }
+
+  if (languageStore.language === 'bisaya') {
+    return {
+      searchPlaceholder: 'Pangitaa ang mga botika…',
+      searchAriaLabel: 'Pangitaa ang mga botika',
+      nearbyPharmacies: (count) => `${count} botika duol nimo`,
+      resultsFor: (shown, query) => `${shown} resulta para sa "${query}"`,
+      pharmacyBadge: 'Botika',
+      directions: 'Direksyon',
+      dismiss: 'Isalikway',
+      locating: 'Gipangita ang imong lokasyon…',
+      searching: 'Nangita og mga botika…',
+      failedLoad: 'Napakyas ang pag-load sa mga botika',
+      noDataReturned: 'Walay nadawat nga datos',
+      noPharmaciesFound: 'Walay nakit-an nga botika duol nimo',
+      networkError: 'Error sa network — sulayi pag-usab',
+      geolocationUnsupported: 'Dili suportado ang pagkuha sa lokasyon',
+      locationDenied: 'Gidili ang pag-access sa lokasyon',
+    }
+  }
+
+  return {
+    searchPlaceholder: 'Search pharmacies…',
+    searchAriaLabel: 'Search pharmacies',
+    nearbyPharmacies: (count) => `${count} pharmacies nearby`,
+    resultsFor: (shown, query) => `${shown} result${shown !== 1 ? 's' : ''} for "${query}"`,
+    pharmacyBadge: 'Pharmacy',
+    directions: 'Directions',
+    dismiss: 'Dismiss',
+    locating: 'Locating you…',
+    searching: 'Searching for pharmacies…',
+    failedLoad: 'Failed to load pharmacies',
+    noDataReturned: 'No data returned',
+    noPharmaciesFound: 'No pharmacies found nearby',
+    networkError: 'Network error — please retry',
+    geolocationUnsupported: 'Geolocation not supported',
+    locationDenied: 'Location access denied',
+  }
+})
 
 function goHome() {
   router.push({ name: 'home' })
@@ -277,13 +341,13 @@ function filterMarkers() {
   })
 
   pharmacyCount.value = shown
-  if (q) setStatus(`${shown} result${shown !== 1 ? 's' : ''} for "${q}"`, 'info', 0)
-  else setStatus(`Found ${shown} pharmacies`, 'success')
+  if (q) setStatus(labels.value.resultsFor(shown, q), 'info', 0)
+  else setStatus(labels.value.nearbyPharmacies(shown), 'success')
 }
 
 // ─── Fetch pharmacies ─────────────────────────────────────────────────────────
 async function fetchPharmacies(lat, lon) {
-  setStatus('Searching for pharmacies…', 'info', 0)
+  setStatus(labels.value.searching, 'info', 0)
   const query = `
 [out:json][timeout:25];
 (
@@ -301,14 +365,14 @@ out center;
     })
 
     if (!resp.ok) {
-      setStatus('Failed to load pharmacies', 'error')
+      setStatus(labels.value.failedLoad, 'error')
       console.error('Overpass API error:', resp.status, await resp.text())
       return
     }
 
     const data = await resp.json()
     if (!data.elements || !Array.isArray(data.elements)) {
-      setStatus('No data returned', 'warning')
+      setStatus(labels.value.noDataReturned, 'warning')
       return
     }
 
@@ -322,7 +386,7 @@ out center;
       if (!elLat || !elLon) return
 
       const tags = el.tags || {}
-      const name = tags.name ? escapeHtml(tags.name) : 'Pharmacy'
+      const name = tags.name ? escapeHtml(tags.name) : labels.value.pharmacyBadge
       const address = tags['addr:street'] ? escapeHtml(tags['addr:street']) : ''
       const phone = tags.phone ? escapeHtml(tags.phone) : ''
       const hours = tags.opening_hours ? escapeHtml(tags.opening_hours) : ''
@@ -358,12 +422,12 @@ out center;
     pharmacyCount.value = added
 
     if (added === 0) {
-      setStatus('No pharmacies found nearby', 'warning')
+      setStatus(labels.value.noPharmaciesFound, 'warning')
     } else {
-      setStatus(`Found ${added} pharmacies`, 'success')
+      setStatus(labels.value.nearbyPharmacies(added), 'success')
     }
   } catch (err) {
-    setStatus('Network error — please retry', 'error')
+    setStatus(labels.value.networkError, 'error')
     console.error('Failed to fetch pharmacies from Overpass API', err)
   }
 }
@@ -371,11 +435,11 @@ out center;
 // ─── Geolocation ──────────────────────────────────────────────────────────────
 async function locateAndFetch() {
   if (!('geolocation' in navigator)) {
-    setStatus('Geolocation not supported', 'error')
+    setStatus(labels.value.geolocationUnsupported, 'error')
     return
   }
   isLocating.value = true
-  setStatus('Locating you…', 'info', 0)
+  setStatus(labels.value.locating, 'info', 0)
 
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
@@ -415,7 +479,7 @@ async function locateAndFetch() {
     },
     (err) => {
       isLocating.value = false
-      setStatus('Location access denied', 'error')
+      setStatus(labels.value.locationDenied, 'error')
       console.error('Geolocation error:', err?.message || err)
     },
     { enableHighAccuracy: true, timeout: 10000 },

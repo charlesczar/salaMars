@@ -12,3 +12,4 @@ app.use('/api/medicines', medicineRouter);
 
 export default app;
 
+//AIzaSyAX1FnD0o815lurtCkNpy2R1_bkpvyWt80
