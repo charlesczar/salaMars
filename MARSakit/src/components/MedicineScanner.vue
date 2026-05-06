@@ -1,7 +1,7 @@
 <template>
   <div class="medicine-scanner">
     <div class="status" v-if="status">{{ status }}</div>
-    <div class="found-label" v-if="ocrText">{{ labels.foundLabel }}</div>
+    <div class="found-label" v-if="ocrText && medicinesFound > 0">{{ labels.foundLabel }}</div>
     <div class="ocr-text" v-if="ocrText">{{ ocrText }}</div>
 
   </div>
@@ -47,7 +47,7 @@ const labels = computed(() => {
   }
 
   return {
-    foundLabel: 'Found Medicines',
+    foundLabel: 'Found Medicine',
     preparing: 'Preparing OCR engine...',
     enhancing: 'Enhancing image quality...',
     reading: 'Reading image text...',
@@ -74,24 +74,38 @@ async function searchText(txt: string) {
   }
   const lang = langMap[languageStore.language] || 'english'
   console.log(`Scanning in language: ${lang} (Store value: ${languageStore.language})`)
+  console.log(`Extracted ${sortedWords.length} unique words from OCR text`)
+  console.log(`Top words to scan:`, sortedWords.slice(0, 10))
   
-  // Test at most the top 5 words sequentially to avoid spamming the backend API
-  for (let i = 0; i < Math.min(5, sortedWords.length); i++) {
+  // Scan words sequentially until we find the FIRST valid medicine
+  const maxWordsToScan = Math.min(10, sortedWords.length)
+  
+  for (let i = 0; i < maxWordsToScan; i++) {
     const word = sortedWords[i]
     if (!word) continue
 
+    console.log(`Scanning word ${i + 1}/${maxWordsToScan}: "${word}"`)
     const response = await scanMedicines(word, lang)
+    
     if (response && !response.error) {
+      console.log(`✓ Found valid medicine: "${word}" → ${response.medicine_name || response.name}`)
+      medicinesFound.value = 1
       emit('scan-complete', response)
-      return
+      return // Stop immediately after finding first valid medicine
+    } else {
+      console.log(`✗ No match for "${word}"`)
     }
   }
 
+  // No medicine found after scanning all words
+  console.log(`Scan complete. No valid medicine found.`)
+  medicinesFound.value = 0
   emit('scan-complete', { error: 'No medicine recognized in the image. Please try again with a clearer photo.' })
 }
 
 const status = ref('')
 const ocrText = ref('')
+const medicinesFound = ref(0)
 
 async function initTesseract() {
   try {
@@ -159,6 +173,7 @@ async function preprocessImage(file: File): Promise<Blob> {
 async function processFile(file: File) {
   status.value = labels.value.preparing
   ocrText.value = ''
+  medicinesFound.value = 0
 
   try {
     const w = await getWorker()
@@ -198,6 +213,7 @@ window.addEventListener('beforeunload', async () => {
 <style scoped>
 .medicine-scanner { max-width: 720px; margin: 1rem auto }
 .status { margin-top: 8px; color: #333 }
+.found-label { margin-top: 8px; font-weight: 600; color: #2563eb }
 .ocr-text { margin-top: 8px; white-space: pre-wrap; background: #f8f8f8; padding: 8px; border-radius: 6px }
 .scan-results { margin-top: 10px }
 </style>
