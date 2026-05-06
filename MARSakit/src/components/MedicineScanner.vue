@@ -63,9 +63,9 @@ async function searchText(txt: string) {
     .replace(/[^a-zA-Z]/g, ' ')
     .split(/\s+/)
     .filter(w => w.length > 3)
-    
-  // Sort words by length descending (medicine names are usually prominent)
-  const sortedWords = Array.from(new Set(words)).sort((a, b) => b.length - a.length)
+  
+  const uniqueWords = Array.from(new Set(words))
+  const sortedWords = uniqueWords.sort((a, b) => b.length - a.length)
   
   const langMap: Record<string, string> = {
     'en': 'english',
