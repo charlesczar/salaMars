@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildExplainPrompt } from '../utils/gemini.prompts.js';
-import { askGemini } from '../services/gemini.service.js';
+import { GeminiRequestError, askGemini } from '../services/gemini.service.js';
 import { normalizeInput } from '../utils/normalize.query.js';
 import { languages, type Language } from '../constants/languages.js';
 
@@ -186,6 +186,8 @@ export const searchMedicine = async (req: Request, res: Response) => {
     const { medicine, language } = req.query as { medicine?: string; language?: string };
     const resolvedLanguage = resolveLanguagePreference(language);
 
+    console.log('Received search request with query:', req.query);
+    
     if (!medicine || medicine.trim() === '' || !language) {
         return res.status(400).json({ error: 'Medicine and language are required.' });
     }
@@ -213,7 +215,8 @@ export const searchMedicine = async (req: Request, res: Response) => {
             )
         );
     } catch (error) {
-        console.warn('Gemini unavailable, using offline fallback');
+        const details = error instanceof GeminiRequestError ? error.message : error instanceof Error ? error.message : String(error);
+        console.warn(`Gemini unavailable, using offline fallback INSIDE SEARCH MEDICINE: ${details}`);
     }
 
     const geminiResponse = hasUsefulGeminiResponse(explanation)
@@ -227,6 +230,7 @@ export const searchMedicine = async (req: Request, res: Response) => {
 };
 
 export const scanMedicine = async (req: Request, res: Response) => {
+    console.log('Received scan request with body:', req.body);
     const medicine = req.body?.medicine as string | undefined;
     const language = req.body?.language as Language | undefined;
     const resolvedLanguage = resolveLanguagePreference(language);
@@ -253,7 +257,8 @@ export const scanMedicine = async (req: Request, res: Response) => {
             buildExplainPrompt(matchedMedicine, resolvedLanguage, { query: medicine, matchedOn: getMatchContext(matchedMedicine, medicine) })
         );
     } catch (error) {
-        console.warn('Gemini unavailable, using offline fallback');
+        const details = error instanceof GeminiRequestError ? error.message : error instanceof Error ? error.message : String(error);
+        console.warn(`Gemini unavailable, using offline fallback INSIDE SCAN MEDICINE: ${details}`);
     }
 
     const geminiResponse = hasUsefulGeminiResponse(explanation)
