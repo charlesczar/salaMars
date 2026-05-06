@@ -32,15 +32,33 @@ async function searchText(txt: string) {
     .replace(/[^a-zA-Z]/g, ' ')
     .split(/\s+/)
     .filter(w => w.length > 3)
-    
-  // Sort words by length descending (medicine names are usually prominent)
-  const sortedWords = Array.from(new Set(words)).sort((a, b) => b.length - a.length)
+  
+  const uniqueWords = Array.from(new Set(words))
+  const sortedWords = uniqueWords.sort((a, b) => b.length - a.length)
   
   const lang = languageStore.language === 'tl' ? 'filipino' : 'english'
-  
-  // Test at most the top 5 words sequentially to avoid spamming the backend API
-  for (let i = 0; i < Math.min(5, sortedWords.length); i++) {
-    const word = sortedWords[i]
+// Generate fuzzy search candidates by trimming characters from the start/end of words
+  const fuzzyCandidates = sortedWords
+    .flatMap((word) => {
+      const candidates = [word]
+      if (word.length > 5) {
+        candidates.push(word.slice(0, -1))
+        candidates.push(word.slice(1))
+      }
+      if (word.length > 4) {
+        candidates.push(word.slice(0, -2))
+      }
+      return candidates
+    })
+    .filter(Boolean)
+    .reduce((acc: string[], candidate) => {
+      if (!acc.includes(candidate)) acc.push(candidate)
+      return acc
+    }, [])
+
+  // Test a limited number of fuzzy search candidates to avoid spamming the backend API
+  for (let i = 0; i < Math.min(10, fuzzyCandidates.length); i++) {
+    const word = fuzzyCandidates[i]
     if (!word) continue
 
     const response = await scanMedicines(word, lang)
