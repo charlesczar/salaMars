@@ -11,7 +11,7 @@
 import { ref, computed, watch } from 'vue'
 import { loadExternalScript } from '@/utils/loadExternalScript'
 import { useLanguageStore } from '@/stores/language'
-import { scanMedicines } from '@/utils/api'
+import { searchMedicines } from '@/utils/api'
 
 const props = defineProps<{
   initialFile?: File | null
@@ -85,7 +85,7 @@ async function searchText(txt: string) {
     if (!word) continue
 
     console.log(`Scanning word ${i + 1}/${maxWordsToScan}: "${word}"`)
-    const response = await scanMedicines(word, lang)
+    const response = await searchMedicines(word, lang)
     
     if (response && !response.error) {
       console.log(`✓ Found valid medicine: "${word}" → ${response.medicine_name || response.name}`)
