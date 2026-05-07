@@ -1,9 +1,17 @@
 function resolveFrontendUrl(): string | undefined {
+    const normalizeOrigin = (value: string | undefined): string | undefined => {
+        if (!value) {
+            return undefined;
+        }
+
+        return value.replace(/\/$/, '');
+    };
+
     if (process.env.NODE_ENV === 'production') {
-        return process.env.FRONTEND_URL_PROD || process.env.FRONTEND_URL;
+        return normalizeOrigin(process.env.FRONTEND_URL_PROD || process.env.FRONTEND_URL);
     }
 
-    return process.env.FRONTEND_URL_DEV || process.env.FRONTEND_URL;
+    return normalizeOrigin(process.env.FRONTEND_URL_DEV || process.env.FRONTEND_URL);
 }
 
 export const envConfig = () => {
