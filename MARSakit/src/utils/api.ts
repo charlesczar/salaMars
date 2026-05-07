@@ -14,9 +14,18 @@ export type Medicine = {
   otc: boolean
 }
 
+function buildApiUrl(path: string): string {
+  const base = import.meta.env.VITE_BACKEND_URL
+  if (!base) {
+    return path
+  }
+
+  return new URL(path, base).toString()
+}
+
 export async function searchMedicines(query: string, language: string = 'english'): Promise<any> {
   try {
-    const url = new URL('/api/medicines', window.location.origin)
+    const url = new URL(buildApiUrl('/api/medicines'), window.location.origin)
     url.searchParams.set('medicine', query)
     url.searchParams.set('language', language)
     const response = await fetch(url)
@@ -37,7 +46,7 @@ export async function searchMedicines(query: string, language: string = 'english
 
 export async function getAllMedicines(): Promise<Medicine[]> {
   try {
-    const response = await fetch('/api/medicines')
+    const response = await fetch(buildApiUrl('/api/medicines/all'))
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     return await response.json()
   } catch (err) {
@@ -45,3 +54,5 @@ export async function getAllMedicines(): Promise<Medicine[]> {
     return []
   }
 }
+
+export { buildApiUrl }

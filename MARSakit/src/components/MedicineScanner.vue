@@ -9,7 +9,7 @@
 import { ref, computed, watch } from 'vue'
 import { loadExternalScript } from '@/utils/loadExternalScript'
 import { useLanguageStore } from '@/stores/language'
-import { searchMedicines } from '@/utils/api'
+import { buildApiUrl, searchMedicines } from '@/utils/api'
 
 const props = defineProps<{
   initialFile?: File | null
@@ -76,7 +76,7 @@ async function searchText(txt: string) {
   console.log(`Top words to scan:`, sortedWords.slice(0, 10))
   
   // Fetch medicines from backend
-  const medicinesResponse = await fetch('/api/medicines/all')
+  const medicinesResponse = await fetch(buildApiUrl('/api/medicines/all'))
   if (!medicinesResponse.ok) {
     console.error('Failed to fetch medicines from backend')
     emit('scan-complete', { error: 'Failed to fetch medicine database. Please try again.' })
