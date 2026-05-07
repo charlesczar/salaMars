@@ -2,8 +2,6 @@
   <div class="medicine-scanner">
     <div class="status" v-if="status">{{ status }}</div>
     <div class="found-label" v-if="ocrText && medicinesFound > 0">{{ labels.foundLabel }}</div>
-    <div class="ocr-text" v-if="ocrText">{{ ocrText }}</div>
-
   </div>
 </template>
 
@@ -77,23 +75,45 @@ async function searchText(txt: string) {
   console.log(`Extracted ${sortedWords.length} unique words from OCR text`)
   console.log(`Top words to scan:`, sortedWords.slice(0, 10))
   
-  // Scan words sequentially until we find the FIRST valid medicine
-  const maxWordsToScan = Math.min(10, sortedWords.length)
+  // Fetch medicines from backend
+  const medicinesResponse = await fetch('/api/medicines/all')
+  if (!medicinesResponse.ok) {
+    console.error('Failed to fetch medicines from backend')
+    emit('scan-complete', { error: 'Failed to fetch medicine database. Please try again.' })
+    return
+  }
   
+  const allMedicines = await medicinesResponse.json()
+  
+  // Initialize Fuse.js for fuzzy matching
+  const fuse = new (window as any).Fuse(allMedicines, {
+    keys: ['name', 'genericName', 'brandNames', 'searchKeys'],
+    threshold: 0.4, // Allow fuzzy matches with 40% tolerance
+    includeScore: true,
+  })
+  
+  // First try: fuzzy search against backend medicines
+  const maxWordsToScan = Math.min(10, sortedWords.length)
   for (let i = 0; i < maxWordsToScan; i++) {
     const word = sortedWords[i]
     if (!word) continue
 
-    console.log(`Scanning word ${i + 1}/${maxWordsToScan}: "${word}"`)
-    const response = await searchMedicines(word, lang)
+    console.log(`Fuzzy searching word ${i + 1}/${maxWordsToScan}: "${word}"`)
+    const fuzzyResults = fuse.search(word)
     
-    if (response && !response.error) {
-      console.log(`✓ Found valid medicine: "${word}" → ${response.medicine_name || response.name}`)
-      medicinesFound.value = 1
-      emit('scan-complete', response)
-      return // Stop immediately after finding first valid medicine
+    if (fuzzyResults.length > 0) {
+      const bestMatch = fuzzyResults[0]?.item as any
+      console.log(`✓ Fuzzy matched: "${word}" → ${bestMatch.name} (score: ${fuzzyResults[0]?.score})`)
+      
+      // Now get detailed info from backend
+      const response = await searchMedicines(bestMatch.name, lang)
+      if (response && !response.error) {
+        medicinesFound.value = 1
+        emit('scan-complete', response)
+        return
+      }
     } else {
-      console.log(`✗ No match for "${word}"`)
+      console.log(`✗ No fuzzy match for "${word}"`)
     }
   }
 
@@ -110,9 +130,10 @@ const medicinesFound = ref(0)
 async function initTesseract() {
   try {
     await loadExternalScript('/libs/tesseract.min.js')
+    await loadExternalScript('/libs/fuse.js')
     return true
   } catch (e) {
-    console.error('Failed to load OCR libs', e)
+    console.error('Failed to load libs', e)
     return false
   }
 }
@@ -214,6 +235,5 @@ window.addEventListener('beforeunload', async () => {
 .medicine-scanner { max-width: 720px; margin: 1rem auto }
 .status { margin-top: 8px; color: #333 }
 .found-label { margin-top: 8px; font-weight: 600; color: #2563eb }
-.ocr-text { margin-top: 8px; white-space: pre-wrap; background: #f8f8f8; padding: 8px; border-radius: 6px }
 .scan-results { margin-top: 10px }
 </style>
