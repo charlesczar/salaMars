@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import medicineRouter from './routes/medicine.routes.js';
+import pharmacyRouter from './routes/pharmacy.routes.js';
 import { getFrontendUrl } from './config/env.js';
 
 const app = express();
@@ -21,5 +22,6 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/medicines', medicineRouter);
+app.use('/api/pharmacies', pharmacyRouter);
 
 export default app;

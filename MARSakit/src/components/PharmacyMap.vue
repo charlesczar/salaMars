@@ -179,6 +179,7 @@ import { onMounted, onBeforeUnmount, ref, watch, nextTick, computed } from 'vue'
 import LanguageSelector from './LanguageSelector.vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
+import { buildApiUrl } from '@/utils/api.ts'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import iconUrl from 'leaflet/dist/images/marker-icon.png'
@@ -348,25 +349,17 @@ function filterMarkers() {
 // ─── Fetch pharmacies ─────────────────────────────────────────────────────────
 async function fetchPharmacies(lat, lon) {
   setStatus(labels.value.searching, 'info', 0)
-  const query = `
-[out:json][timeout:25];
-(
-  node["amenity"="pharmacy"](around:${SEARCH_RADIUS_METERS},${lat},${lon});
-  way["amenity"="pharmacy"](around:${SEARCH_RADIUS_METERS},${lat},${lon});
-  relation["amenity"="pharmacy"](around:${SEARCH_RADIUS_METERS},${lat},${lon});
-);
-out center;
-`
   try {
-    const resp = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: query,
-    })
+    const url = new URL(buildApiUrl('/api/pharmacies'))
+    url.searchParams.set('latitude', lat.toString())
+    url.searchParams.set('longitude', lon.toString())
+    url.searchParams.set('radius', SEARCH_RADIUS_METERS.toString())
+
+    const resp = await fetch(url.toString())
 
     if (!resp.ok) {
       setStatus(labels.value.failedLoad, 'error')
-      console.error('Overpass API error:', resp.status, await resp.text())
+      console.error('Pharmacy API error:', resp.status, await resp.text())
       return
     }
 
@@ -428,7 +421,7 @@ out center;
     }
   } catch (err) {
     setStatus(labels.value.networkError, 'error')
-    console.error('Failed to fetch pharmacies from Overpass API', err)
+    console.error('Failed to fetch pharmacies from backend', err)
   }
 }
 
