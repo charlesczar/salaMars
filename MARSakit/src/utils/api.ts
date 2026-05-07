@@ -21,31 +21,16 @@ export async function searchMedicines(query: string, language: string = 'english
     url.searchParams.set('language', language)
     const response = await fetch(url)
     const data = await response.json()
+
+    console.log('Search response:', data)
+
     if (!response.ok) {
       return { error: data.error || `Error ${response.status}: ${data.message || 'Unknown error'}` }
     }
-    console.log('Search response:', data)
+
     return data
   } catch (err) {
     console.error('Medicine search error:', err)
-    return { error: 'Network error or failed to connect to backend.' }
-  }
-}
-
-export async function scanMedicines(medicineName: string, language: string): Promise<any> {
-  try {
-    const response = await fetch('/api/medicines/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ medicine: medicineName, language })
-    })
-    const data = await response.json()
-    if (!response.ok) {
-      return { error: data.error || `Error ${response.status}: ${data.message || 'Unknown error'}` }
-    }
-    return data
-  } catch (err) {
-    console.error('Medicine scan error:', err)
     return { error: 'Network error or failed to connect to backend.' }
   }
 }

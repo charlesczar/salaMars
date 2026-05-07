@@ -1,6 +1,55 @@
 import ai from '../config/gemini.client.js';
 import { SYSTEM_INSTRUCTION } from '../utils/gemini.prompts.js';
 
+export class GeminiRequestError extends Error {
+    status?: string;
+    code?: number | string;
+    raw?: unknown;
+
+    constructor(message: string, details?: { status?: string; code?: number | string; raw?: unknown }) {
+        super(message);
+        this.name = 'GeminiRequestError';
+
+        if (details?.status !== undefined) {
+            this.status = details.status;
+        }
+
+        if (details?.code !== undefined) {
+            this.code = details.code;
+        }
+
+        if (details?.raw !== undefined) {
+            this.raw = details.raw;
+        }
+    }
+}
+
+function formatGeminiError(error: unknown): GeminiRequestError {
+    if (error instanceof GeminiRequestError) {
+        return error;
+    }
+
+    if (error instanceof Error) {
+        try {
+            const parsed = JSON.parse(error.message);
+            const apiError = parsed?.error ?? parsed;
+            const code = apiError?.code ?? apiError?.statusCode;
+            const status = apiError?.status ?? apiError?.statusText;
+            const message = apiError?.message ?? error.message;
+            const label = [code, status].filter((value) => value !== undefined && value !== null && String(value).trim() !== '').join(' ');
+
+            return new GeminiRequestError(
+                `Gemini API error${label ? ` [${label}]` : ''}: ${message}`,
+                { code, status, raw: parsed }
+            );
+        } catch {
+            return new GeminiRequestError(error.message || 'Unknown Gemini error', { raw: error });
+        }
+    }
+
+    return new GeminiRequestError('Unknown Gemini error', { raw: error });
+}
+
 function extractJsonPayload(raw: string): string {
     const cleaned = raw.replace(/```json|```/g, '').trim();
 
@@ -55,17 +104,11 @@ export async function askGemini(prompt: string): Promise<any> {
             try {
                 return JSON.parse(repaired);
             } catch {
-                throw new Error(`Gemini returned invalid JSON: ${raw}`);
+                throw new GeminiRequestError(`Gemini returned invalid JSON: ${raw}`, { raw });
             }
         }
 
     } catch (error: any) {
-        try {
-            const parsed = JSON.parse(error.message);
-            const { code, message, status } = parsed?.error ?? {};
-            throw new Error(`Gemini API Error [${code} ${status}]: ${message}`);
-        } catch {
-            throw new Error(error.message ?? 'Unknown Gemini error');
-        }
+        throw formatGeminiError(error);
     }
 }

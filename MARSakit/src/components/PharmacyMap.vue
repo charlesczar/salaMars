@@ -198,7 +198,7 @@ const labels = computed(() => {
     return {
       searchPlaceholder: 'Maghanap ng mga botika…',
       searchAriaLabel: 'Maghanap ng mga botika',
-      nearbyPharmacies: (count) => `${count} botika sa malapit`,
+      nearbyPharmacies: (count) => `${count} Botikang malapit`,
       resultsFor: (shown, query) => `${shown} resulta para sa "${query}"`,
       pharmacyBadge: 'Botika',
       directions: 'Ruta',
@@ -207,7 +207,7 @@ const labels = computed(() => {
       searching: 'Naghahanap ng mga botika…',
       failedLoad: 'Nabigong i-load ang mga botika',
       noDataReturned: 'Walang natanggap na datos',
-      noPharmaciesFound: 'Walang nahanap na botika sa malapit',
+      noPharmaciesFound: 'Walang nahanap na botika na malapit',
       networkError: 'Error sa network — subukan muli',
       geolocationUnsupported: 'Hindi suportado ang pagkuha ng lokasyon',
       locationDenied: 'Tinanggihan ang pag-access sa lokasyon',

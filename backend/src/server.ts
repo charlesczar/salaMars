@@ -1,15 +1,10 @@
 import express from 'express';
 import medicineRouter from './routes/medicine.routes.js';
-import cors from 'cors';
 
 const app = express();
 
 app.use(express.json());
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5175' }));
-
 app.use('/api/medicines', medicineRouter);
 
 export default app;
-
-//AIzaSyAX1FnD0o815lurtCkNpy2R1_bkpvyWt80

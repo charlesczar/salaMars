@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildExplainPrompt } from '../utils/gemini.prompts.js';
-import { askGemini } from '../services/gemini.service.js';
+import { GeminiRequestError, askGemini } from '../services/gemini.service.js';
 import { normalizeInput } from '../utils/normalize.query.js';
 import { languages, type Language } from '../constants/languages.js';
 
@@ -186,6 +186,8 @@ export const searchMedicine = async (req: Request, res: Response) => {
     const { medicine, language } = req.query as { medicine?: string; language?: string };
     const resolvedLanguage = resolveLanguagePreference(language);
 
+    console.log('SEARCH MEDICINE CONTROLLER: Received search request with query:', req.query);
+    
     if (!medicine || medicine.trim() === '' || !language) {
         return res.status(400).json({ error: 'Medicine and language are required.' });
     }
@@ -213,7 +215,8 @@ export const searchMedicine = async (req: Request, res: Response) => {
             )
         );
     } catch (error) {
-        console.warn('Gemini unavailable, using offline fallback');
+        const details = error instanceof GeminiRequestError ? error.message : error instanceof Error ? error.message : String(error);
+        console.warn(`Gemini unavailable, using offline fallback INSIDE SEARCH MEDICINE: ${details}`);
     }
 
     const geminiResponse = hasUsefulGeminiResponse(explanation)
@@ -224,41 +227,4 @@ export const searchMedicine = async (req: Request, res: Response) => {
         geminiResponse,
         ...(searchCorrection && { searchCorrection }),
     });
-};
-
-export const scanMedicine = async (req: Request, res: Response) => {
-    const medicine = req.body?.medicine as string | undefined;
-    const language = req.body?.language as Language | undefined;
-    const resolvedLanguage = resolveLanguagePreference(language);
-
-    if (!resolvedLanguage) {
-        return res.status(400).json({ error: 'Language preference is required.' });
-    }
-
-    if (!medicine || medicine.trim() === '') {
-        return res.status(400).json({ error: 'Medicine name is required.' });
-    }
-
-    const { medicine: matchedMedicine } = findBestMedicineMatch(medicine);
-
-    if (!matchedMedicine) {
-        return res.status(404).json({
-            error: `No medicine found for "${medicine}". Please check your spelling.`,
-        });
-    }
-
-    let explanation = null;
-    try {
-        explanation = await askGemini(
-            buildExplainPrompt(matchedMedicine, resolvedLanguage, { query: medicine, matchedOn: getMatchContext(matchedMedicine, medicine) })
-        );
-    } catch (error) {
-        console.warn('Gemini unavailable, using offline fallback');
-    }
-
-    const geminiResponse = hasUsefulGeminiResponse(explanation)
-        ? explanation
-        : buildMedicineResponse(matchedMedicine);
-
-    return res.status(200).json({ geminiResponse });
 };

@@ -7,7 +7,7 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiTarget = env.VITE_BACKEND_URL || 'http://localhost:5000'
+  const apiTarget = env.VITE_BACKEND_URL || 'http://localhost:5001'
 
   return {
     plugins: [vue(), vueJsx()],
