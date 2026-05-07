@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+// @ts-expect-error PharmacyMap is a JS-based SFC; vue-tsc can flag TS7016 in CI.
 import PharmacyMap from '../components/PharmacyMap.vue'
 
 const router = createRouter({
