@@ -12,6 +12,14 @@ app.use(cors({
 
 app.use(express.json());
 
+app.get('/', (_req, res) => {
+	res.status(200).json({ ok: true, service: 'backend', message: 'Backend is running.' });
+});
+
+app.get('/health', (_req, res) => {
+	res.status(200).json({ ok: true });
+});
+
 app.use('/api/medicines', medicineRouter);
 
 export default app;

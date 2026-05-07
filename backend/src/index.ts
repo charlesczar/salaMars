@@ -5,8 +5,12 @@ envConfig();
 
 import app from './server.js';
 
-const PORT = process.env.PORT;
+const PORT = Number(process.env.PORT) || 3000;
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}
+
+export default app;
