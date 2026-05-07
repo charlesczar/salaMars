@@ -26,21 +26,51 @@ out center;
 `;
 
     try {
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: query,
-        });
+        // Try a list of Overpass endpoints (some instances may reject requests from certain hosts)
+        const endpoints = [
+            'https://overpass-api.de/api/interpreter',
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter',
+        ];
 
-        if (!response.ok) {
-            console.error(`Overpass API error: ${response.status} ${await response.text()}`);
-            return res.status(response.status).json({ error: 'Failed to fetch pharmacies from Overpass API.' });
+        let lastError: any = null;
+        let fetchResponse: any = null;
+
+        for (const endpoint of endpoints) {
+            try {
+                fetchResponse = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'Accept': 'application/json',
+                        'User-Agent': 'marsakit-backend/1.0 (+https://github.com/charlesczar/salaMars)'
+                    },
+                    body: query,
+                });
+
+                if (!fetchResponse.ok) {
+                    const text = await fetchResponse.text();
+                    console.warn(`Overpass endpoint ${endpoint} returned ${fetchResponse.status}: ${text}`);
+                    lastError = { status: fetchResponse.status, text };
+                    fetchResponse = null;
+                    continue; // try next endpoint
+                }
+
+                // success
+                const data = await fetchResponse.json();
+                return res.status(200).json(data);
+            } catch (err) {
+                console.warn(`Failed to call Overpass endpoint ${endpoint}:`, err);
+                lastError = err;
+                fetchResponse = null;
+                // try next endpoint
+            }
         }
 
-        const data = await response.json();
-        return res.status(200).json(data);
+        console.error('All Overpass endpoints failed', lastError);
+        return res.status(502).json({ error: 'Failed to fetch pharmacies from Overpass API.' });
     } catch (error) {
-        console.error('Failed to fetch pharmacies:', error);
+        console.error('Unexpected error fetching pharmacies:', error);
         return res.status(500).json({ error: 'Failed to fetch pharmacies.' });
     }
 };
