@@ -184,7 +184,7 @@ import 'leaflet/dist/leaflet.css'
 import iconUrl from 'leaflet/dist/images/marker-icon.png'
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
-import pharmacyIconUrl from '../assets/pharmacy.webp'
+import pharmacyIconUrl from '../assets/Mars-Medicine.png'
 
 // ─── Leaflet default icon fix ────────────────────────────────────────────────
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl })
@@ -1113,10 +1113,6 @@ onBeforeUnmount(() => {
 :deep(.leaflet-control-container) {
   z-index: 850;
 }
-:deep(.leaflet-control-zoom) {
-  margin-bottom: 80px !important;
-  margin-right: 14px !important;
-}
 
 /* ─── Desktop layout ─────────────────────────────────────────── */
 @media (min-width: 768px) {
@@ -1128,6 +1124,11 @@ onBeforeUnmount(() => {
   }
   .header-search {
     max-width: 480px;
+  }
+
+  :deep(.leaflet-control-zoom) {
+    margin-bottom: 80px !important;
+    margin-right: 14px !important;
   }
 }
 
@@ -1200,6 +1201,119 @@ onBeforeUnmount(() => {
     transition:
       transform 0.25s ease,
       opacity 0.2s;
+  }
+}
+
+@media (max-width: 767px) {
+  .top-header {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 10px;
+    padding: 12px 12px 12px;
+  }
+
+  .back-btn {
+    left: 12px;
+    top: 12px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .back-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .header-brand {
+    margin-left: 44px;
+  }
+
+  .brand-name {
+    font-size: 15px;
+  }
+
+  .header-search {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+    margin-top: 0;
+    border-radius: 14px;
+    padding: 8px 12px;
+  }
+
+  .search-input {
+    font-size: 14px;
+  }
+
+  .status-pill {
+    top: 82px;
+    max-width: calc(100% - 24px);
+    white-space: normal;
+    text-align: center;
+  }
+
+  .count-chip {
+    left: 12px;
+    bottom: 18px;
+    max-width: calc(100% - 96px);
+  }
+
+  .fab {
+    right: 14px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    width: 58px;
+    height: 58px;
+  }
+
+  .fab-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  :deep(.leaflet-control-zoom) {
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 82px) !important;
+    margin-right: 14px !important;
+  }
+
+  @media (max-height: 700px) {
+    .fab {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+      width: 52px;
+      height: 52px;
+    }
+
+    .fab-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    :deep(.leaflet-control-zoom) {
+      margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px) !important;
+    }
+  }
+
+  .bottom-sheet {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 78dvh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .sheet-body {
+    padding: 12px 16px 22px;
+  }
+
+  .sheet-name {
+    font-size: 18px;
+  }
+
+  .sheet-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
   }
 }
 </style>

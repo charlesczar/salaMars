@@ -2,9 +2,9 @@
   <div class="landing-container">
     <!-- Header -->
     <header class="top-nav">
-      <div class="logo">
-        <span class="logo-dark">MARS</span><span class="logo-light">akit</span>
-      </div>
+      <button @click="goToHome" class="logo-button">
+        <img src="@/assets/Mars1.svg" alt="MARSakit" class="logo-image" />
+      </button>
       <div class="nav-links">
         <LanguageSelector />
         <button class="nav-btn" @click="goToPharmacyMap">
@@ -20,9 +20,7 @@
           <span class="dot"></span> MEDICINE · AI ANALYSIS · PHARMACY LOCATOR
         </div>
         
-        <h1 class="main-title">
-          <span class="title-dark">MARS</span><span class="title-light">akit</span>
-        </h1>
+        <img src="@/assets/Mars3.svg" alt="MARSakit" class="main-title-image" />
         
         <p class="subtitle">{{ labels.subtitle }}</p>
 
@@ -35,12 +33,15 @@
             class="search-bar"
             type="text"
           />
-          <button @click="performSearch" class="search-btn">🔍</button>
+          <button @click="performSearch" class="search-btn">
+            <img src="@/assets/Mars-Search.png" alt="search" class="search-icon" />
+          </button>
         </div>
 
         <div class="action-buttons">
           <label class="btn-secondary" :title="uploadTitle">
-            <span class="icon">📷</span> {{ labels.uploadImage }}
+            <img src="@/assets/Mars-Camera-Black.png" alt="camera" class="camera-icon" />
+            {{ labels.uploadImage }}
             <input
               ref="fileInput"
               type="file"
@@ -249,6 +250,10 @@ const handleScanComplete = (response: any) => {
   showScanner.value = false // hide scanner, show result card
 }
 
+const goToHome = () => {
+  router.push({ name: 'home' })
+}
+
 const goToPharmacyMap = () => {
   router.push({ name: 'pharmacy-map' })
 }
@@ -260,7 +265,8 @@ const goToPharmacyMap = () => {
 .landing-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+  height: 100dvh;
   /* Soft, vibrant gradient similar to the inspiration but with our blue/light blue theme */
   background: radial-gradient(circle at 50% 30%, #ffffff 0%, #e0f2fe 40%, #bae6fd 80%, #7dd3fc 100%);
   font-family: 'Inter', sans-serif;
@@ -273,8 +279,9 @@ const goToPharmacyMap = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 3rem;
+  padding: 0rem 2rem;
   width: 100%;
+  height: 80px;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -284,19 +291,24 @@ const goToPharmacyMap = () => {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.logo {
-  font-family: 'Outfit', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+.logo-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
 }
 
-.logo-dark {
-  color: #1e3a8a; /* Dark Blue */
+.logo-button:hover {
+  transform: scale(1.05);
 }
 
-.logo-light {
-  color: #3b82f6; /* Bright Blue */
+.logo-image {
+  height: 100px;
+  width: auto;
+  object-fit: contain;
 }
 
 .nav-links {
@@ -360,9 +372,10 @@ const goToPharmacyMap = () => {
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 1px;
-  padding: 0.4rem 1rem;
+  padding: 0.5rem 3rem;
   border-radius: 50px;
   margin-bottom: 1.5rem;
+  margin-top: -1.75rem;
   border: 1px solid rgba(191, 219, 254, 0.5);
   box-shadow: 0 2px 10px rgba(59, 130, 246, 0.1);
 }
@@ -377,20 +390,12 @@ const goToPharmacyMap = () => {
 }
 
 /* Main Title */
-.main-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 6rem;
-  line-height: 1;
-  margin: 0;
-  letter-spacing: -2px;
-}
-
-.title-dark {
-  color: #0f172a; /* Very dark slate/blue */
-}
-
-.title-light {
-  color: #3b82f6; /* Bright blue */
+.main-title-image {
+  max-width: 400px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  margin: -4rem 0 -4rem 0;
 }
 
 /* Subtitle */
@@ -449,6 +454,13 @@ const goToPharmacyMap = () => {
   cursor: pointer;
   font-size: 1.2rem;
   transition: all 0.2s ease;
+  padding: 0;
+}
+
+.search-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .search-btn:hover {
@@ -477,6 +489,12 @@ const goToPharmacyMap = () => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   border: 1px solid #f1f5f9;
   transition: all 0.2s ease;
+}
+
+.camera-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .btn-secondary:hover {
@@ -520,7 +538,7 @@ const goToPharmacyMap = () => {
     width: 100%;
     max-width: 900px;
     overflow: hidden;
-    margin-top: 1rem;
+    margin-top: -1rem;
     padding: 1rem 0;
     /* Create a fade out effect on the edges */
     -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
@@ -700,24 +718,135 @@ const goToPharmacyMap = () => {
 
 /* Responsive Styles */
 @media (max-width: 768px) {
-  .main-title {
-    font-size: 4rem;
-  }
   .top-nav {
-    padding: 1.5rem;
+    height: auto;
+    min-height: 0;
+    padding: 0.75rem 0.8rem;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .logo-image {
+    height: 84px;
+  }
+  .logo-button {
+    flex: 0 0 auto;
+  }
+  .nav-links {
+    width: auto;
+    margin-left: auto;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+  }
+  .nav-btn {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .landing-content {
+    padding: 1rem 0.9rem 2.25rem;
+  }
+  .hero-section {
+    margin-top: 1.25rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 560px;
+  }
+  .pill-badge {
+    max-width: 100%;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .main-title-image {
+    max-width: min(74vw, 280px);
+    margin: -1.1rem 0 -1.7rem 0;
+  }
+  .subtitle {
+    font-size: 0.97rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding: 0 0.35rem;
+    max-width: 34ch;
   }
   .search-bar-wrapper {
     min-width: unset;
     width: 100%;
+    max-width: 100%;
+    padding: 0.3rem;
+    margin-bottom: 1.25rem;
+  }
+  .search-bar {
+    padding: 0.7rem 0.95rem;
+    font-size: 0.95rem;
+  }
+  .search-btn {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+  .search-icon {
+    width: 18px;
+    height: 18px;
   }
   .action-buttons {
     flex-direction: column;
     width: 100%;
     max-width: 300px;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
   }
   .btn-secondary, .btn-primary {
     width: 100%;
     justify-content: center;
+    padding: 0.76rem 1rem;
+    font-size: 0.92rem;
+  }
+  .camera-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .marquee-container {
+    margin-top: 0;
+    padding: 0.5rem 0 0;
+    -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  }
+  .marquee-track {
+    gap: 0.9rem;
+  }
+  .marquee-card {
+    min-width: 135px;
+    padding: 0.85rem 1rem;
+  }
+  .med-name {
+    font-size: 0.88rem;
+  }
+  .med-cat {
+    font-size: 0.68rem;
+  }
+  .search-results-wrapper,
+  .scanner-container {
+    width: 100%;
+  }
+  .gemini-card {
+    padding: 1.15rem;
+    max-height: 55vh;
+    border-radius: 16px;
+  }
+  .gemini-header h3 {
+    font-size: 1.2rem;
+  }
+  .gemini-content .summary {
+    font-size: 0.98rem;
+  }
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 </style>
