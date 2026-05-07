@@ -80,4 +80,20 @@ const onChange = (value: LanguageCode) => {
   margin-top: -4px;
   pointer-events: none;
 }
+
+@media (max-width: 768px) {
+  .lang-switch {
+    padding: 3px 10px;
+    gap: 4px;
+  }
+
+  .lang-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .lang-select {
+    font-size: 0.78rem;
+  }
+}
 </style>
